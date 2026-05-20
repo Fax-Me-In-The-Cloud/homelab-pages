@@ -32,9 +32,12 @@ sensor:
       {% set t_return = states('sensor.inlet_water_temp_t01') | float(0) %}
       {% set power_w = states('sensor.heat_pump_power_watts') | float(0) %}
 
-      {% if power_w > 100 and (t_flow - t_return) > 0 %}
-        {# Heat (W) = LPM * 60 * 1.16 * DeltaT #}
-        {% set heat_output_w = flow_rate * 60 * 1.16 * (t_flow - t_return) %}
+      {% set delta_t = t_flow - t_return %}
+
+      {# Only calculate if the pump is drawing power and actually heating #}
+      {% if power_w > 100 and delta_t > 0 and flow_rate > 0 %}
+        {# $1163 is a combined multiplier that converts water volume, density, time, and temperature change into Watts of power. #}
+        {% set heat_output_w = flow_rate * 1163 * delta_t %}
         {{ (heat_output_w / power_w) | round(2) }}
       {% else %}
         0
