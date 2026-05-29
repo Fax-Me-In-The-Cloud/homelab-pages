@@ -79,4 +79,9 @@ We can check the temperature of the CPU with the following command:
 watch -n 1 vcgencmd measure_temp
 ```
 
-We can check the fan speed using `cat /sys/class/thermal/cooling_device0/cur_state` which will be a value between 0 and 255. Or checking `GPIO 14` using `pinctrl get 14` where `hi` means the fan is on (100% speed) and `lo` means the fan is off (0% speed).
+We can check the fan speed using `cat /sys/class/thermal/cooling_device0/cur_state` which should be a value between 0 and 255 (does seem binary, 1 is 100%, 0 is off). Or checking `GPIO 14` using `pinctrl get 14` where `hi` means the fan is on (100% speed) and `lo` means the fan is off (0% speed).
+
+```bash
+cat /sys/class/thermal/cooling_device0/cur_state
+pinctrl get 14
+```
