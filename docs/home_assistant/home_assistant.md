@@ -92,18 +92,7 @@ tcping -f 4 -t 5 192.168.1.12 5580
 
 ## OTBR Server
 
-```bash
-kubectl apply -f otbr_server.yaml
-```
-
-```bash
-kubectl logs -f deployment/otbr-server -n home-assistant
-```
-
-Look for these entries in the log:
-
-
-kubectl delete pods -n home-assistant -l app=otbr --force --grace-period=0
+Using OTBR in SMHJUB Nano MG24.
 
 ## HACS
 
