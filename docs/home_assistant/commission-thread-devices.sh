@@ -20,6 +20,10 @@
 #   - matter-server + home-assistant deployments running in the home-assistant ns
 #   - Each device physically next to rpi01 and in pairing mode at its turn.
 #
+# Note: the Thread dataset (which embeds the network key) is passed to the pod
+# via `env TLV=...`, so it is briefly visible in the local process list (ps).
+# This is accepted for a single-user homelab admin box; do not run on a shared host.
+#
 set -euo pipefail
 
 NS=home-assistant
@@ -39,7 +43,7 @@ while [[ $# -gt 0 ]]; do
     -f|--file)
       [[ -f "${2:-}" ]] || { echo "file not found: ${2:-}" >&2; exit 1; }
       while IFS= read -r line; do
-        line="${line%%#*}"; line="$(echo "$line" | tr -d '[:space:]')"
+        line="${line%%#*}"; line="$(echo "$line" | tr -d '[:space:]-')"
         [[ -n "$line" ]] && CODES+=("$line")
       done < "$2"
       shift 2 ;;

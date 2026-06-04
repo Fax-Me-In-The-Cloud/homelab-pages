@@ -34,6 +34,11 @@
 
 .EXAMPLE
   ./Invoke-MatterCommission.ps1 -CodeFile ./codes.txt -NoPrompt
+
+.NOTES
+  The Thread dataset (which embeds the network key) is passed to the pod via
+  `env TLV=...`, so it is briefly visible in the local process list (ps). This is
+  accepted for a single-user homelab admin box; do not run on a shared host.
 #>
 
 function Invoke-MatterCommission {
@@ -55,6 +60,8 @@ function Invoke-MatterCommission {
         # Optional path to a kubeconfig; sets $env:KUBECONFIG for this run.
         [string]$Kubeconfig
     )
+
+    $ErrorActionPreference = 'Stop'
 
     # --- gather and normalise pairing codes -------------------------------
     $codes = if ($PSCmdlet.ParameterSetName -eq 'File') {
@@ -124,8 +131,8 @@ print(next(x["tlv"] for x in d["datasets"] if x["id"] == d["preferred_dataset"])
     if ([string]::IsNullOrWhiteSpace($tlv)) {
         throw 'Home Assistant returned no preferred Thread dataset. Is the smhub border router set up and preferred in HA?'
     }
+    # Do NOT log the dataset value itself — the TLV embeds the Thread network key.
     Write-Verbose ("Got Thread dataset ({0} hex chars)." -f $tlv.Length)
-    Write-Debug   "Thread dataset TLV: $tlv"
 
     # --- per-device commissioning -----------------------------------------
     # This Python runs inside the matter-server pod: it sets the Thread dataset
