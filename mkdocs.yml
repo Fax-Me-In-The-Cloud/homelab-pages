@@ -12,6 +12,7 @@ theme:
     # - navigation.sections
     # - navigation.tabs
 markdown_extensions:
+  - admonition
   - pymdownx.highlight
   - pymdownx.superfences
   - pymdownx.snippets:
