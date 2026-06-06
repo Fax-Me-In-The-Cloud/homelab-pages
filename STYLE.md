@@ -55,6 +55,9 @@ Each service page follows the same shape:
   are the alternative — do not mix the two in a page.
 - **Fenced code blocks carry a language tag** and stay copy-clean — no leading
   `$` prompts, since `content.code.copy` is enabled.
+- **One command per line — no `\` continuations.** Keep each shell command on a
+  single line, however long. Wrapped commands with trailing backslashes are
+  awkward to copy from a terminal.
 - **Tables for inventories** — nodes, network layout, entity/IP/helper
   mappings.
 
@@ -75,6 +78,10 @@ Before merging a docs change, confirm:
 - [ ] Commands are copy-pasteable and current (image tags, versions, IPs)
 - [ ] Verify section shows the expected output
 - [ ] No inline secrets; environment specifics agree with `index.md`
+- [ ] **Internally consistent** — no header, label, or claim contradicted by the
+      surrounding content or by a change made elsewhere; fix such inconsistencies
+      even when not explicitly flagged
+- [ ] Code blocks are single-line commands (no `\` continuations)
 - [ ] Deprecated or removed components are pruned — not left as stale pages or
       manifests
 - [ ] Markdown lints clean
