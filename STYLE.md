@@ -56,8 +56,11 @@ Each service page follows the same shape:
 - **Fenced code blocks carry a language tag** and stay copy-clean — no leading
   `$` prompts, since `content.code.copy` is enabled.
 - **One command per line — no `\` continuations.** Keep each shell command on a
-  single line, however long. Wrapped commands with trailing backslashes are
-  awkward to copy from a terminal.
+  single line; never wrap it with a trailing backslash (awkward to copy from a
+  terminal). If a command becomes very long or wide, prefer **splitting the work
+  into several shorter commands** where possible — e.g. capture an intermediate
+  value in a variable on one line, then use it on the next — rather than one
+  unwieldy line.
 - **Tables for inventories** — nodes, network layout, entity/IP/helper
   mappings.
 
