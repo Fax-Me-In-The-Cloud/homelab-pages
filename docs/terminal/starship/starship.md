@@ -8,6 +8,8 @@ Follow installation instructions on the [Starship website](https://starship.rs/)
 brew install starship
 ```
 
-Download current [starship.toml](./starship.toml).
+Download current [starship.toml](starship.toml).
 
---8<-- "./starship.toml"
+```toml title="starship.toml"
+--8<-- "terminal/starship/starship.toml"
+```

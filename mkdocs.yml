@@ -12,13 +12,19 @@ theme:
     # - navigation.sections
     # - navigation.tabs
 markdown_extensions:
+  - admonition
   - pymdownx.highlight
   - pymdownx.superfences
-  - pymdownx.snippets
+  - pymdownx.snippets:
+      base_path:
+        - docs
+        - .
+      check_paths: true
   - pymdownx.tabbed
   - pymdownx.details
 nav:
   - Homelab: index.md
+  - Rendering demo: rendering-demo.md
   - Terminal:
       - Warp: terminal/warp/warp.md
       - Starship: terminal/starship/starship.md
