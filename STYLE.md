@@ -64,6 +64,40 @@ Each service page follows the same shape:
 - **Tables for inventories** — nodes, network layout, entity/IP/helper
   mappings.
 
+## Long code blocks — include or reference the file, don't inline it
+
+For anything longer than a short snippet (full Kubernetes manifests, Helm
+values, config files, scripts), keep the file as a **sibling next to the page**
+and pull it in, so the rendered content can never drift from the real file.
+Two ways, both verified working with this repo's `mkdocs.yml`:
+
+- **Include** — embed the file's live content as a highlighted block. Wrap a
+  `pymdownx.snippets` directive in a fenced block. **Paths are relative to
+  `docs/`** (not to the page):
+
+  ````text
+  ```yaml title="matter_server.yaml"
+  --8<-- "home_assistant/matter_server.yaml"
+  ```
+  ````
+
+- **Reference** — link to the raw file; MkDocs copies sibling files into the
+  built site, so a relative link resolves:
+
+  ```text
+  [matter_server.yaml](matter_server.yaml)
+  ```
+
+Snippet gotchas — these are why an include can silently do nothing:
+
+- The path resolves against `pymdownx.snippets` `base_path` in `mkdocs.yml`
+  (`docs/`, then the repo root), **not** relative to the page. `--8<-- "./file"`
+  does **not** work; use the path from `docs/` (e.g. `terminal/starship/starship.toml`).
+- `check_paths: true` is enabled, so a wrong path is a **hard build error**, not
+  a silent skip — `mkdocs build --strict` catches it before it ships.
+- Put the `--8<--` line **inside a fenced code block** with a language so it
+  renders highlighted; a bare directive dumps raw text.
+
 ## Secrets & environment specifics
 
 - State concrete IPs and hostnames, but they **must match `index.md`'s network

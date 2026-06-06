@@ -14,7 +14,11 @@ theme:
 markdown_extensions:
   - pymdownx.highlight
   - pymdownx.superfences
-  - pymdownx.snippets
+  - pymdownx.snippets:
+      base_path:
+        - docs
+        - .
+      check_paths: true
   - pymdownx.tabbed
   - pymdownx.details
 nav:
