@@ -1,49 +1,70 @@
 # Longhorn
 
-[Installation Requirements](https://longhorn.io/docs/1.9.0/deploy/install/#installation-requirements)
+[Longhorn](https://longhorn.io/) is a distributed block storage system for Kubernetes. It provides persistent volumes backed by replicated storage across nodes, with a web UI for managing volumes, snapshots, and backups.
 
-Checking Prerequisites Using Longhorn Command Line Tool
+Longhorn replaces the default local-path storage class that k3s ships with, giving persistent volumes that survive node failure.
+
+## Check prerequisites
+
+Longhorn has specific node requirements. The `longhornctl` tool checks them automatically.
+
+First, make the k3s kubeconfig accessible:
 
 ```bash
-sudo mkdir -p ~/.kube
-sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+mkdir -p ~/.kube
+sudo install -o "$USER" -g "$USER" -m 600 /etc/rancher/k3s/k3s.yaml ~/.kube/config
 ```
+
+Using `install` copies the file with your user as the owner, so later
+`kubectl` calls can read it. Avoid `sudo cp`, which leaves
+`~/.kube/config` owned by root and unreadable to your normal user.
+
+Download the `longhornctl` binary for ARM64 (Raspberry Pi):
 
 ```bash
 curl -sSfL -o longhornctl https://github.com/longhorn/cli/releases/download/v1.9.0/longhornctl-linux-arm64
-
 sudo chmod +x longhornctl
+```
+
+Run the preflight check:
+
+```bash
 sudo KUBECONFIG=/etc/rancher/k3s/k3s.yaml ./longhornctl check preflight
 ```
 
-We can attempt to have Longhorn install prerequisites. This will install prerequisites on all nodes in the cluster.
+If the check reports missing packages (e.g. `open-iscsi`, `nfs-common`), the installer can handle them automatically across all nodes:
 
 ```bash
 sudo ./longhornctl --kube-config ~/.kube/config --image longhornio/longhorn-cli:v1.9.0 install preflight
 ```
 
-## Helm Installation
+## Install with Helm
 
-[Install with Helm](https://longhorn.io/docs/1.9.0/deploy/install/install-with-helm/)
+Install Helm if not already available:
 
 ```bash
 brew install helm
 ```
 
-And then install Longhorn using Helm.
+Add the Longhorn Helm chart repository and install into a dedicated namespace:
 
 ```bash
 helm repo add longhorn https://charts.longhorn.io
 helm repo update
 helm install longhorn longhorn/longhorn --namespace longhorn-system --create-namespace --version 1.9.0
-kubectl -n longhorn-system get pod
 ```
 
-## Proxy
+Wait for all pods to come up — Longhorn deploys several components (manager, driver, UI):
 
-When Traefik is up and running we can create an ingress and certificate for Longhorn.
+```bash
+kubectl -n longhorn-system get pod --watch
+```
 
-The existing frontend service is already behind a load balancer, so we delete that and create our own.
+All pods should reach `Running` state. This can take a few minutes on the first install.
+
+## Expose the UI
+
+Longhorn's frontend service is initially behind a LoadBalancer. We delete that and replace it with a ClusterIP so Traefik can manage ingress:
 
 ```bash
 kubectl delete service longhorn-frontend -n longhorn-system
@@ -52,8 +73,13 @@ kubectl apply -f certificate.yaml
 kubectl apply -f ingress.yaml
 ```
 
-Wait for the certificate to be ready.
+Wait for cert-manager to issue the certificate before testing the UI:
 
 ```bash
 kubectl describe certificate longhorn-web-ui-tls -n longhorn-system
 ```
+
+`Status: True` and `Reason: Ready` in the conditions means TLS is working. The UI will be available at `https://longhorn.local.spaelling.xyz`.
+
+!!! note
+    The ingress and certificate manifests (`longhorn-frontend.yaml`, `certificate.yaml`, `ingress.yaml`) live alongside this documentation. Traefik and cert-manager must be installed and working before applying them.
