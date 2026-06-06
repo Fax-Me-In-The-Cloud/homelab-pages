@@ -23,6 +23,7 @@ markdown_extensions:
   - pymdownx.details
 nav:
   - Homelab: index.md
+  - Rendering demo: rendering-demo.md
   - Terminal:
       - Warp: terminal/warp/warp.md
       - Starship: terminal/starship/starship.md
