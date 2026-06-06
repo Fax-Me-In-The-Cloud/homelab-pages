@@ -345,7 +345,7 @@ kubectl exec -it $(kubectl get pods -n home-assistant -l app=home-assistant -o j
 
 ### Utility scripts
 
-Helper scripts for factory-resetting Zigbee IKEA bulbs by power-cycling the
+Helper scripts for factory-resetting IKEA bulbs by power-cycling the
 smart plug they are connected to. Each takes a `switch` entity as input and
 toggles it on a fixed schedule — the bulb resets after the required number of
 off/on cycles.
