@@ -342,3 +342,19 @@ Verify the credentials are loaded as environment variables in the Home Assistant
 ```bash
 kubectl exec -it $(kubectl get pods -n home-assistant -l app=home-assistant -o jsonpath='{.items[0].metadata.name}') -n home-assistant -- env | grep HEATPUMP_
 ```
+
+### Utility scripts
+
+Helper scripts for factory-resetting Zigbee IKEA bulbs by power-cycling the
+smart plug they are connected to. Each takes a `switch` entity as input and
+toggles it on a fixed schedule — the bulb resets after the required number of
+off/on cycles.
+
+```yaml
+reset_ikea_bulb.yaml       # 6 power cycles (standard TRADFRI bulb)
+reset_ikea_kajplats.yaml   # 12 power cycles (KAJPLATS bulb)
+```
+
+These live in Home Assistant as scripts (**Settings → Automations & Scenes →
+Scripts**). Paste the YAML into a new script in YAML-edit mode, or add the
+contents under the matching key in `/config/scripts.yaml`.
