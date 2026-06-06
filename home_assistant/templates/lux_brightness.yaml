@@ -1,0 +1,13 @@
+sensor:
+  - name: "Target Bulb Brightness"
+    unique_id: target_bulb_brightness
+    unit_of_measurement: "%"
+    state: >
+      {% set lux = states('sensor.night_light_illuminance') | float(0) %}
+      {% if lux > 1000 %}
+        10
+      {% elif lux < 10 %}
+        100
+      {% else %}
+        {{ (100 - (lux / 12)) | int }}
+      {% endif %}

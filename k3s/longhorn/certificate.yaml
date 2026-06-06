@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: longhorn-web-ui-tls
+  namespace: longhorn-system
+spec:
+  secretName: longhorn-web-ui-tls
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+    - longhorn.local.spaelling.xyz

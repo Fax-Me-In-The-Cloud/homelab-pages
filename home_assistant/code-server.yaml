@@ -1,0 +1,106 @@
+# code-server.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vscode-server
+  namespace: home-assistant
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: vscode
+  template:
+    metadata:
+      labels:
+        app: vscode
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  # This ensures the pod ONLY runs on Node 1
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - rpi01
+      containers:
+        - name: vscode
+          image: lscr.io/linuxserver/code-server:latest
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+            - name: TZ
+              value: "Europe/Copenhagen"
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vscode-password
+                  key: code-server-password
+          ports:
+            - containerPort: 8443
+          volumeMounts:
+            # PVC for persistent data
+            - mountPath: /config
+              name: home-assistant-pvc-volume
+              readOnly: false
+      volumes:
+        - name: home-assistant-pvc-volume
+          persistentVolumeClaim:
+            claimName: home-assistant-pvc
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: code-home-assistant-tls
+  namespace: home-assistant
+spec:
+  secretName: code-home-assistant-tls
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+    - code.home-assistant.local.spaelling.xyz
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: code-home-assistant-ingress
+  namespace: home-assistant
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: code.home-assistant.local.spaelling.xyz
+      http:
+        paths:
+          - backend:
+              service:
+                name: code-home-assistant-lb
+                port:
+                  number: 8443
+            path: /
+            pathType: Prefix
+  tls:
+    - hosts:
+        - code.home-assistant.local.spaelling.xyz
+      secretName: code-home-assistant-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: code-home-assistant-lb
+  namespace: home-assistant
+  labels:
+    app: code-home-assistant
+spec:
+  ports:
+    - port: 8443
+      targetPort: 8443
+      name: code-home-assistant-web
+  selector:
+    app: vscode
+  type: LoadBalancer

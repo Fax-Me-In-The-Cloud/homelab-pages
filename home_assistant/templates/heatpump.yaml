@@ -1,0 +1,44 @@
+sensor:
+  - name: "Heat Pump Mode Description"
+    unique_id: heatpump_mode_description
+    state: >
+      {% set mode = states('sensor.operating_mode_mode') | int %}
+      {% if mode == 0 %}
+        Hot Water Only
+      {% elif mode == 3 %}
+        Hot Water & Heating
+      {% else %}
+        Unknown ({{ mode }})
+      {% endif %}
+    icon: >
+      {% if states('sensor.operating_mode_mode') | int == 0 %}
+        mdi:water-boiler
+      {% else %}
+        mdi:radiator
+      {% endif %}
+  - name: "Heat Pump Power Watts"
+    unit_of_measurement: "W"
+    device_class: power
+    state: >
+      {% set voltage = 230 %}
+      {% set pf = 0.9 %}
+      {% set amps = states('sensor.ac_input_current_t35') | float(0) %}
+      {{ (amps * voltage * pf) | round(2) }}
+  - name: "Heat Pump COP"
+    unit_of_measurement: "COP"
+    state: >
+      {% set flow_rate = states('sensor.water_flow_t39') | float(0) %}
+      {% set t_flow = states('sensor.outlet_water_temp_t02') | float(0) %}
+      {% set t_return = states('sensor.inlet_water_temp_t01') | float(0) %}
+      {% set power_w = states('sensor.heat_pump_power_watts') | float(0) %}
+
+      {% set delta_t = t_flow - t_return %}
+
+      {# Only calculate if the pump is drawing power and actually heating #}
+      {% if power_w > 100 and delta_t > 0 and flow_rate > 0 %}
+        {# $1163 is a combined multiplier that converts water volume, density, time, and temperature change into Watts of power. #}
+        {% set heat_output_w = flow_rate * 1163 * delta_t %}
+        {{ (heat_output_w / power_w) | round(2) }}
+      {% else %}
+        0
+      {% endif %}

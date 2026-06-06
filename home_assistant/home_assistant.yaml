@@ -1,0 +1,235 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: home-assistant-pvc
+  namespace: home-assistant
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: longhorn
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: home-assistant-time-pv
+  namespace: home-assistant
+spec:
+  capacity:
+    storage: 1Mi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /etc/localtime
+  claimRef:
+    name: home-assistant-time-pvc
+    namespace: default
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: home-assistant-config
+  namespace: home-assistant
+data:
+  configuration.yaml: |
+    shell_command:
+      set_heatpump_temp: >
+        /bin/sh -c 'python3 /config/python_scripts/heatpump_control.py "$HP_USERNAME" "$HP_PASSWORD" "$HP_DEVICE_CODE" "{{ protocol_code }}" "{{ value }}"'
+        
+    # === Core instance settings ===
+    homeassistant:
+      external_url: "https://home-assistant.local.spaelling.xyz"
+
+    # === Reverse proxy / Ingress ===
+    http:
+      use_x_forwarded_for: true
+      trusted_proxies:
+        - 10.42.0.0/16
+        - 192.168.1.0/24
+
+    # === Recommended: enables a sensible set of built-ins ===
+    # Includes UI, cloud, history, mobile_app (unless you prefer explicit control)
+    default_config:
+
+    # === Explicitly enable Mobile App integration (keeps working even if default_config is removed) ===
+    mobile_app:
+
+    # === Person integration (manage people via UI: Settings → People) ===
+    person:
+
+    # include automation and script files
+    automation: !include automations.yaml
+    script: !include scripts.yaml
+    scene: !include scenes.yaml
+    template: !include_dir_list templates/
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: home-assistant
+  namespace: home-assistant
+  labels:
+    app: home-assistant
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: home-assistant
+  template:
+    metadata:
+      labels:
+        app: home-assistant
+    spec:
+      hostNetwork: true
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  # This ensures the pod ONLY runs on Node 1
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - rpi01
+      initContainers:
+        - name: install-custom-components
+          image: alpine:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              apk add --no-cache wget unzip ca-certificates bash;
+
+              # Function to install HACS
+              if [ ! -f "/config/custom_components/hacs/manifest.json" ]; then
+                echo "Installing HACS..."
+                mkdir -p /config/custom_components/hacs
+                cd /config/custom_components/hacs
+                wget https://github.com/hacs/integration/releases/latest/download/hacs.zip
+                unzip -o hacs.zip && rm hacs.zip
+              fi
+
+              # Function to install Warmlink
+              if [ ! -f "/config/custom_components/warmlink/manifest.json" ]; then
+                echo "Installing Warmlink..."
+                mkdir -p /config/custom_components/warmlink
+                cd /tmp
+                wget -O warmlink.zip https://github.com/srbjessen/ha-warmlink/releases/latest/download/warmlink-v70.0-integration-only.zip
+                unzip -o warmlink.zip
+                # Move files from the nested folder to the correct location
+                mv custom_components/warmlink/* /config/custom_components/warmlink/
+                rm -rf custom_components warmlink.zip
+              fi
+
+              chown -R 1000:1000 /config/custom_components || true
+          volumeMounts:
+            - name: home-assistant-pvc-volume
+              mountPath: /config
+      containers:
+        - name: home-assistant
+          image: ghcr.io/home-assistant/home-assistant:stable
+          lifecycle:
+            postStart:
+              exec:
+                # install python requests library
+                command: ["/bin/sh", "-c", "pip install requests"]
+          securityContext:
+            privileged: true
+          ports:
+            - containerPort: 8123
+          env:
+            - name: HP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: heatpump-warmlink-credentials
+                  key: HEATPUMP_USER
+            - name: HP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: heatpump-warmlink-credentials
+                  key: HEATPUMP_PASS
+            - name: HP_DEVICE_CODE
+              valueFrom:
+                secretKeyRef:
+                  name: heatpump-warmlink-credentials
+                  key: HEATPUMP_DEVICE_CODE
+          volumeMounts:
+            # PVC for persistent data
+            - mountPath: /config
+              name: home-assistant-pvc-volume
+              readOnly: false
+            # ConfigMap for configuration.yaml only
+            - mountPath: /config/configuration.yaml
+              name: home-assistant-config-volume
+              subPath: configuration.yaml
+            # Host time sync
+            - mountPath: /etc/localtime
+              name: host-time
+              readOnly: true
+      volumes:
+        - name: home-assistant-pvc-volume
+          persistentVolumeClaim:
+            claimName: home-assistant-pvc
+        - name: home-assistant-config-volume
+          configMap:
+            name: home-assistant-config
+        - name: host-time
+          hostPath:
+            path: /etc/localtime
+            type: File
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: home-assistant-tls
+  namespace: home-assistant
+spec:
+  secretName: home-assistant-tls
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+    - home-assistant.local.spaelling.xyz
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: home-assistant-ingress
+  namespace: home-assistant
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: home-assistant.local.spaelling.xyz
+      http:
+        paths:
+          - backend:
+              service:
+                name: home-assistant-lb
+                port:
+                  number: 8123
+            path: /
+            pathType: Prefix
+  tls:
+    - hosts:
+        - home-assistant.local.spaelling.xyz
+      secretName: home-assistant-tls
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: home-assistant-lb
+  namespace: home-assistant
+  labels:
+    app: home-assistant
+spec:
+  ports:
+    - port: 8123
+      targetPort: 8123
+      name: home-assistant-web
+  selector:
+    app: home-assistant
+  type: LoadBalancer

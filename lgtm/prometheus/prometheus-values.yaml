@@ -1,0 +1,5 @@
+# minimal-values.yaml
+
+# Disable Grafana
+grafana:
+  enabled: false

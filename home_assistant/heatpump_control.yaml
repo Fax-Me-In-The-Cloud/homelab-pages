@@ -1,0 +1,229 @@
+alias: "Heatpump: Economic Logic"
+sequence:
+  - alias: Initialize Variables & Log Entry
+    variables:
+      # Thresholds
+      p_boost: 0.75
+      p_reduce: 1.25
+      p_off: 1.75
+      p_hard_off: 2.5
+      # Entities
+      e_price: sensor.energi_data_service
+      e_strategy: input_select.heatpump_strategy
+      e_base: input_number.heatpump_base_temperature
+      e_delta: input_number.heatpump_boost_value
+      e_off_helper: input_datetime.heatpump_off_since
+      e_bedroom_thermostat: climate.sovevaerelse
+      e_thermostats:
+        - climate.esther
+        - climate.gustav
+        - climate.entre
+        - climate.sovevaerelse
+        - climate.kokken
+        - climate.viktualie
+      e_boost_thermostats:
+        - climate.esther
+        - climate.gustav
+        - climate.entre
+        - climate.kokken
+        - climate.sovevaerelse
+      thermostat_normal_temp: 21
+      thermostat_boost_temp: 25
+      sleeping_hour_start: 22
+      sleeping_hour_end: 6
+      # Values
+      current_price: "{{ states(e_price) | float(0) }}"
+      current_strategy: "{{ states(e_strategy) }}"
+      base_temp: "{{ states(e_base) | float(20) }}"
+      boost_delta: "{{ states(e_delta) | float(5) }}"
+      current_hour: "{{ now().hour }}"
+      is_sleeping_hours: >
+        {{ current_hour >= sleeping_hour_start or current_hour < sleeping_hour_end }}
+
+  - alias: Write to Home Assistant Log
+    action: system_log.write
+    data:
+      level: info
+      logger: custom_hp_steering
+      message: |
+        HP Steering Run: Price {{ current_price }} DKK. Base {{ base_temp }}°C. 
+        Current Strategy: {{ current_strategy }}. Boost Delta: {{ boost_delta }}°C.
+  - alias: Branching Logic
+    choose:
+      # HARD OFF (Ignore 4-hour limit if price is extreme)
+      - alias: "Check: Hard Off Condition"
+        conditions:
+          - condition: template
+            value_template: "{{ current_price > p_hard_off }}"
+        sequence:
+          - action: input_select.select_option
+            target:
+              entity_id: "{{ e_strategy }}"
+            data:
+              option: "Off"
+          - action: shell_command.set_heatpump_temp
+            data:
+              protocol_code: "Mode"
+              value: "0"
+          - repeat:
+              for_each: "{{ e_thermostats }}"
+              sequence:
+                - action: climate.set_temperature
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  data:
+                    temperature: "{{ thermostat_normal_temp }}"
+
+      # CRITICAL OFF (Price > 1.75 AND < 4 hours elapsed)
+      - alias: "Check: Critical Off Condition"
+        conditions:
+          - condition: template
+            value_template: "{{ current_price > p_off }}"
+          - condition: template
+            alias: "Safety: Total Off duration < 4 hours"
+            value_template: |
+              {% set off_since = states(e_off_helper) %}
+              {% if is_state(e_strategy, 'Off') %}
+                {# Force both to UTC to ensure they are 'aware' and comparable #}
+                {{ (now() | as_utc - as_datetime(off_since) | as_utc).total_seconds() < 14400 }}
+              {% else %}
+                true
+              {% endif %}
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ not is_state(e_strategy, 'Off') }}"
+            then:
+              - action: input_datetime.set_datetime
+                target:
+                  entity_id: "{{ e_off_helper }}"
+                data:
+                  datetime: "{{ now() }}"
+          - action: input_select.select_option
+            target:
+              entity_id: "{{ e_strategy }}"
+            data:
+              option: "Off"
+          - action: shell_command.set_heatpump_temp
+            data:
+              protocol_code: "Mode"
+              value: "0" # 0 is Hot Water only
+          - repeat:
+              for_each: "{{ e_thermostats }}"
+              sequence:
+                - action: climate.set_temperature
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  data:
+                    temperature: "{{ thermostat_normal_temp }}"
+
+      # BOOST (Price < 0.5)
+      - alias: "Check: Boost Condition"
+        conditions:
+          - condition: template
+            value_template: "{{ current_price < p_boost }}"
+        sequence:
+          - action: input_select.select_option
+            target:
+              entity_id: "{{ e_strategy }}"
+            data:
+              option: "Boost"
+          - action: shell_command.set_heatpump_temp
+            data:
+              protocol_code: "Mode"
+              value: "3" # 3 is Hot Water & Heating
+
+          - delay: "00:00:02" # <--- Critical: Give the API time to register Mode 3
+
+          - action: shell_command.set_heatpump_temp
+            data:
+              protocol_code: "compensate_offset"
+              value: "{{ (base_temp + boost_delta) | int }}"
+          - repeat:
+              for_each: "{{ e_boost_thermostats }}"
+              sequence:
+                - if:
+                    - condition: template
+                      value_template: >
+                        {{ repeat.item != e_bedroom_thermostat or not is_sleeping_hours }}
+                  then:
+                    - action: climate.set_temperature
+                      target:
+                        entity_id: "{{ repeat.item }}"
+                      data:
+                        temperature: "{{ thermostat_boost_temp }}"
+          - action: system_log.write
+            data:
+              level: info
+              logger: custom_hp_steering
+              message: "Boost Active. Calculated Target: {{ base_temp + boost_delta }}°C"
+
+      # REDUCE
+      - alias: "Check: Reduce Condition"
+        conditions:
+          - condition: template
+            value_template: "{{ current_price > p_reduce }}"
+        sequence:
+          - action: input_select.select_option
+            target:
+              entity_id: "{{ e_strategy }}"
+            data:
+              option: "Reduce"
+          - action: shell_command.set_heatpump_temp
+            data:
+              protocol_code: "Mode"
+              value: "3" # 3 is Hot Water & Heating
+
+          - delay: "00:00:02" # <--- Critical: Give the API time to register Mode 3
+
+          - action: shell_command.set_heatpump_temp
+            data:
+              protocol_code: "compensate_offset"
+              value: "{{ (base_temp - boost_delta) | int }}"
+          - action: system_log.write
+            data:
+              level: info
+              logger: custom_hp_steering
+              message: "Reduction Active. Calculated Target: {{ base_temp - boost_delta }}°C"
+          - repeat:
+              for_each: "{{ e_thermostats }}"
+              sequence:
+                - action: climate.set_temperature
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  data:
+                    temperature: "{{ thermostat_normal_temp }}"
+
+      # DEFAULT (Normal Strategy)
+      - alias: "Default: Normal Strategy"
+        conditions: []
+        sequence:
+          - action: input_datetime.set_datetime
+            target:
+              entity_id: "{{ e_off_helper }}"
+            data:
+              datetime: "2000-01-01 00:00:00"
+          - action: input_select.select_option
+            target:
+              entity_id: "{{ e_strategy }}"
+            data:
+              option: "Normal"
+          - action: shell_command.set_heatpump_temp
+            data:
+              protocol_code: "Mode"
+              value: "3" # 3 is Hot Water & Heating
+
+          - delay: "00:00:02" # <--- Critical: Give the API time to register Mode 3
+
+          - action: shell_command.set_heatpump_temp
+            data:
+              protocol_code: "compensate_offset"
+              value: "{{ base_temp | int }}"
+          - repeat:
+              for_each: "{{ e_thermostats }}"
+              sequence:
+                - action: climate.set_temperature
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  data:
+                    temperature: "{{ thermostat_normal_temp }}"

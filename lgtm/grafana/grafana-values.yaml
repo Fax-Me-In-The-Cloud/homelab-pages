@@ -1,0 +1,41 @@
+replicas: 1
+ingress:
+  enabled: true
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+  ingressClassName: traefik
+  hosts:
+    - grafana.local.spaelling.xyz
+  tls:
+    - secretName: grafana-tls
+      hosts:
+        - grafana.local.spaelling.xyz
+persistence:
+  enabled: true
+# Authentik configuration
+# assertNoLeakedSecrets: false # set to false if testing with secrets directly in the values file
+grafana.ini:
+  server:
+    root_url: "https://grafana.local.spaelling.xyz/"
+  auth:
+    signout_redirect_url: "https://authentik.local.spaelling.xyz/application/o/grafana/end-session/"
+    oauth_auto_login: true
+  auth.generic_oauth:
+    name: authentik
+    enabled: true
+    client_id: $__file{/etc/secrets/auth_generic_oauth/client_id}
+    client_secret: $__file{/etc/secrets/auth_generic_oauth/client_secret}
+    # client_id: ""
+    # client_secret: ""
+    scopes: "openid profile email"
+    auth_url: "https://authentik.local.spaelling.xyz/application/o/authorize/"
+    token_url: "https://authentik.local.spaelling.xyz/application/o/token/"
+    api_url: "https://authentik.local.spaelling.xyz/application/o/userinfo/"
+    # Optionally map user groups to Grafana roles
+    # role_attribute_path: contains(groups, 'Grafana Admins') && 'Admin' || contains(groups, 'Grafana Editors') && 'Editor' || 'Viewer'
+extraSecretMounts:
+  - name: auth-generic-oauth-secret-mount
+    secretName: auth-generic-oauth-secret
+    defaultMode: 0440
+    mountPath: /etc/secrets/auth_generic_oauth
+    readOnly: true

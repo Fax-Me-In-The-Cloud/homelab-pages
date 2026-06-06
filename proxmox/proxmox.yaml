@@ -1,0 +1,78 @@
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: proxmox-transport
+  namespace: traefik
+spec:
+  insecureSkipVerify: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: proxmox-external-svc
+  namespace: traefik
+  annotations:
+    # This tells Traefik to use the transport we created above
+    traefik.ingress.kubernetes.io/service.serverstransport: traefik-proxmox-transport@kubernetescrd
+    traefik.ingress.kubernetes.io/service.serversscheme: https
+spec:
+  ports:
+    - name: https
+      protocol: TCP
+      port: 8006
+      targetPort: 8006
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: proxmox-external-svc-1 # Name should be unique, often suffixed
+  namespace: traefik
+  labels:
+    # This label is CRITICAL; it must match your Service name
+    kubernetes.io/service-name: proxmox-external-svc
+addressType: IPv4
+ports:
+  - name: https
+    protocol: TCP
+    port: 8006
+endpoints:
+  - addresses:
+      - "192.168.1.160"
+    conditions:
+      ready: true
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: proxmox-tls
+  namespace: traefik
+spec:
+  secretName: proxmox-tls
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+    - pve01.local.spaelling.xyz
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: proxmox-ingress
+  namespace: traefik
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: pve01.local.spaelling.xyz
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: proxmox-external-svc
+                port:
+                  number: 8006
+  tls:
+    - hosts:
+        - pve01.local.spaelling.xyz
+      secretName: proxmox-tls

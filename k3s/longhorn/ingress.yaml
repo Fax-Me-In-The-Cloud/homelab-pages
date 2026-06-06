@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: longhorn-web-ui
+  namespace: longhorn-system
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: traefik-authentik-proxy-forwarder@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: longhorn.local.spaelling.xyz
+      http:
+        paths:
+          - backend:
+              service:
+                name: longhorn-frontend-custom
+                port:
+                  number: 8000
+            path: /
+            pathType: Prefix
+  tls:
+    - hosts:
+        - longhorn.local.spaelling.xyz
+      secretName: longhorn-web-ui-tls

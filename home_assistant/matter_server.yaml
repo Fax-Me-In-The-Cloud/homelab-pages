@@ -1,0 +1,102 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: matter-server-pvc
+  namespace: home-assistant
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: longhorn
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matter-server
+  namespace: home-assistant
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: matter-server
+  template:
+    metadata:
+      labels:
+        app: matter-server
+    spec:
+      hostNetwork: true # Critical for mDNS and Thread discovery
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  # This ensures the pod ONLY runs on Node 1
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - rpi01
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: matter-server
+          image: ghcr.io/home-assistant-libs/python-matter-server:stable
+          securityContext:
+            privileged: true # required for BLE commissioning + Thread
+          # --storage-path keeps the controller DB (chip.json + per-node
+          # files: the fabric and every commissioned device) on the PVC at
+          # /data. Without it the server falls back to /root/.matter_server/
+          # on the ephemeral container filesystem and loses all devices on
+          # every restart. --primary-interface pins link-local discovery to
+          # the host NIC (hostNetwork is on).
+          args:
+            - "--listen-address"
+            - "0.0.0.0"
+            - "--primary-interface"
+            - "eth0"
+            - "--storage-path"
+            - "/data"
+            # --bluetooth-adapter <hci index> lets the Matter Server do BLE
+            # commissioning itself (no phone needed). rpi01 has an onboard
+            # Bluetooth controller (hci0) with bluetoothd running on the host;
+            # the CHIP SDK reaches it over the host D-Bus system bus mounted
+            # below. Required to onboard Matter-over-Thread devices like the
+            # IKEA TIMMERFLOTTE without an Apple/Google phone ecosystem.
+            - "--bluetooth-adapter"
+            - "0"
+          ports:
+            - containerPort: 5580
+              name: ws-api
+          volumeMounts:
+            - mountPath: /data
+              name: matter-server-pvc
+              readOnly: false
+            # Host D-Bus system bus → BlueZ on rpi01 for native BLE.
+            - mountPath: /run/dbus
+              name: host-dbus
+              readOnly: true
+      volumes:
+        - name: matter-server-pvc
+          persistentVolumeClaim:
+            claimName: matter-server-pvc
+        - name: host-dbus
+          hostPath:
+            path: /run/dbus
+            type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: matter-server-service
+  namespace: home-assistant
+  # annotations:
+  #   kube-vip.io/loadbalancerIPs: "192.168.1.22"
+spec:
+  selector:
+    app: matter-server
+  ports:
+    - protocol: TCP
+      port: 5580
+      targetPort: 5580

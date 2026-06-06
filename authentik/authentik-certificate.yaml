@@ -1,0 +1,26 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: authentik-tls
+  namespace: authentik
+spec:
+  secretName: authentik-tls
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+    - authentik.local.spaelling.xyz
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: authentik-outpost-tls
+  namespace: authentik
+spec:
+  secretName: authentik-outpost-tls
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+    - longhorn.local.spaelling.xyz
+    - dashboard.traefik.local.spaelling.xyz

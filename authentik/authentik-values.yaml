@@ -1,0 +1,23 @@
+authentik:
+    # This sends anonymous usage-data, stack traces on errors and
+    # performance data to sentry.io, and is fully opt-in
+    error_reporting:
+        enabled: true
+server:
+    ingress:
+        # Specify kubernetes ingress controller class name
+        ingressClassName: traefik
+        enabled: true
+        pathType: Prefix
+        paths:
+            - /
+        hosts:
+            - authentik.local.spaelling.xyz
+        tls:
+            - hosts:
+                - authentik.local.spaelling.xyz
+              secretName: authentik-tls
+postgresql:
+    enabled: true
+redis:
+    enabled: true

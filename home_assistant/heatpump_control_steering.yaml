@@ -1,0 +1,22 @@
+alias: "Heatpump: Steering Scheduler"
+description: "Runs economic logic every 15 mins or on setting changes"
+trigger:
+  # 1. Periodic check (every 15 minutes)
+  - platform: time_pattern
+    minutes: "/15"
+  # 2. Immediate check if base temperature changes
+  - platform: state
+    entity_id: input_number.heatpump_base_temperature
+  # 3. Immediate check if boost value changes
+  - platform: state
+    entity_id: input_number.heatpump_boost_value
+  # 4. Immediate check when electricity prices update
+  - platform: state
+    entity_id: sensor.energi_data_service
+condition:
+  # Ensure the price sensor is actually providing a number before running
+  - condition: template
+    value_template: "{{ states('sensor.energi_data_service') | is_number }}"
+action:
+  - action: script.heatpump_economic_logic
+mode: restart

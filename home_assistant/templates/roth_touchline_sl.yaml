@@ -1,0 +1,91 @@
+sensor:
+  # Esther Room
+  - name: "Esther Room Current Temperature"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    state: "{{ state_attr('climate.esther', 'current_temperature') }}"
+
+  - name: "Esther Room Humidity"
+    unit_of_measurement: "%"
+    device_class: humidity
+    state_class: measurement
+    state: "{{ state_attr('climate.esther', 'current_humidity') }}"
+
+    # Gustav Room
+  - name: "Gustav Room Current Temperature"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    state: "{{ state_attr('climate.gustav', 'current_temperature') }}"
+
+  - name: "Gustav Room Humidity"
+    unit_of_measurement: "%"
+    device_class: humidity
+    state_class: measurement
+    state: "{{ state_attr('climate.gustav', 'current_humidity') }}"
+
+    # Entre
+  - name: "Entre Current Temperature"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    state: "{{ state_attr('climate.entre', 'current_temperature') }}"
+
+  - name: "Entre Humidity"
+    unit_of_measurement: "%"
+    device_class: humidity
+    state_class: measurement
+    state: "{{ state_attr('climate.entre', 'current_humidity') }}"
+
+    # Bedroom
+  - name: "Bedroom Current Temperature"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    state: "{{ state_attr('climate.sovevaerelse', 'current_temperature') }}"
+
+  - name: "Bedroom Humidity"
+    unit_of_measurement: "%"
+    device_class: humidity
+    state_class: measurement
+    state: "{{ state_attr('climate.sovevaerelse', 'current_humidity') }}"
+
+    # Bathroom
+  - name: "Bathroom Current Temperature"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    state: "{{ state_attr('climate.badevaerelse', 'current_temperature') }}"
+
+  - name: "Bathroom Humidity"
+    unit_of_measurement: "%"
+    device_class: humidity
+    state_class: measurement
+    state: "{{ state_attr('climate.badevaerelse', 'current_humidity') }}"
+
+    # Kitchen
+  - name: "Kitchen Current Temperature"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    state: "{{ state_attr('climate.kokken', 'current_temperature') }}"
+
+  - name: "Kitchen Humidity"
+    unit_of_measurement: "%"
+    device_class: humidity
+    state_class: measurement
+    state: "{{ state_attr('climate.kokken', 'current_humidity') }}"
+
+    # Pantry
+  - name: "Pantry Current Temperature"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    state: "{{ state_attr('climate.viktualie', 'current_temperature') }}"
+
+  - name: "Pantry Humidity"
+    unit_of_measurement: "%"
+    device_class: humidity
+    state_class: measurement
+    state: "{{ state_attr('climate.viktualie', 'current_humidity') }}"

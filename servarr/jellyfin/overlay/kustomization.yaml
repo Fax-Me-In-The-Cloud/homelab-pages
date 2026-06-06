@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: servarr
+
+# basic jellyfin server deployment resources
+resources:
+  - ../base/
+
+# updates base configuration
+patches:
+  - target:
+      kind: Ingress
+      name: jellyfin-ingress
+    patch: |-
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: jellyfin.local.spaelling.xyz 
+      - op: replace
+        path: /spec/rules/0/host
+        value: jellyfin.local.spaelling.xyz
+  - target:
+      kind: Certificate
+      name: jellyfin-tls
+    patch: |-
+      - op: replace
+        path: /spec/dnsNames/0
+        value: jellyfin.local.spaelling.xyz
+  - target:
+      kind: PersistentVolumeClaim
+      name: media
+    patch: |-
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: 10Gi

@@ -1,0 +1,76 @@
+apiVersion: traefik.io/v1alpha1
+kind: ServersTransport
+metadata:
+  name: pihole-transport
+  namespace: traefik
+spec:
+  insecureSkipVerify: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pihole-external-svc
+  namespace: traefik
+  annotations:
+    # Use the actual name of the resource: pihole-transport
+    traefik.ingress.kubernetes.io/service.serverstransport: traefik-pihole-transport@kubernetescrd
+spec:
+  ports:
+    - name: pi-port # Standardized name
+      protocol: TCP
+      port: 80
+      targetPort: 80
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: pihole-external-svc-1
+  namespace: traefik
+  labels:
+    kubernetes.io/service-name: pihole-external-svc
+addressType: IPv4
+ports:
+  - name: pi-port # MUST match Service port name exactly
+    protocol: TCP
+    port: 80 # Port Pi-hole is listening on
+endpoints:
+  - addresses:
+      - "192.168.1.60"
+    conditions:
+      ready: true
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: pihole-tls
+  namespace: traefik
+spec:
+  secretName: pihole-tls
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+    - pihole.local.spaelling.xyz
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pihole-ingress
+  namespace: traefik
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: pihole.local.spaelling.xyz
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: pihole-external-svc
+                port:
+                  name: pi-port
+  tls:
+    - hosts:
+        - pihole.local.spaelling.xyz
+      secretName: pihole-tls

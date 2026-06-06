@@ -1,0 +1,25 @@
+alias: Reset IKEA Kajplats
+description: >
+  Power-cycles a smart plug twelve times to factory-reset an IKEA KAJPLATS bulb
+  (needs more cycles than a standard TRADFRI bulb).
+fields:
+  target_entity:
+    name: Entity to toggle
+    description: Pick a smart plug
+    selector:
+      entity:
+        domain:
+          - switch
+sequence:
+  - repeat:
+      count: 12
+      sequence:
+        - target:
+            entity_id: "{{ target_entity }}"
+          action: switch.turn_off
+        - delay: "00:00:01.000"
+        - target:
+            entity_id: "{{ target_entity }}"
+          action: switch.turn_on
+        - delay: "00:00:01.000"
+mode: single
