@@ -355,44 +355,61 @@ windowless rooms. All config-as-code — no UI editing.
 | `automations.yaml` | `/config/automations.yaml` | All automations (HA already does `automation: !include automations.yaml`); the lighting ones reference `input_number.light_intensity`. |
 | `scenes.yaml` | `/config/scenes.yaml` | All scenes (HA already does `scene: !include scenes.yaml`); static snapshots — see the note below. |
 
-### Central intensity value
+### Central intensity and window ratio
 
-`input_number.light_intensity` (0–100 %) is the single value to reference:
+Brightness is **daylight-compensated**: the more daylight a room actually
+receives, the dimmer its bulbs run, so perceived light stays roughly constant
+through the day.
 
-- **Windowed rooms** (Living Room, Office, Johan) — [Adaptive Lighting](https://github.com/basnijholt/adaptive-lighting)
-  (HACS) drives the daylight curve, and `light_intensity` is its
-  **max-brightness ceiling**, so one slider scales the whole house. A
-  cloud-cover automation raises the *floor* (`min_brightness`) on gloomy
-  weather (via `weather.forecast_home`), always staying under the ceiling.
-- **Windowless rooms** (Viktualie, Basement) — **permanent override**: lights
-  always track `light_intensity` with no daylight dimming. Basement keeps its
-  late-night soft level, derived from `light_intensity`.
+- **`input_number.light_intensity`** (0–100 %) — the master target indoor level,
+  referenced everywhere.
+- **`input_number.window_ratio_<room>`** (0–100 %) — how much of a room's light
+  comes from its windows. **Windowless rooms have ratio 0.** Defaults: Living
+  Room 80, Office 60, Johan 70, Viktualie 0, Basement 0.
+
+Per room:
+
+```text
+brightness = light_intensity × (1 − window_ratio × daylight)
+daylight   = clamp(sun_elevation / 40°, 0..1) × sky_clarity(weather)
+```
+
+So a windowed room dims as real daylight grows and returns to full
+`light_intensity` after dark; a windowless room (ratio 0) always sits at
+`light_intensity`. The **daylight envelope** automation computes this and feeds
+it to each Adaptive Lighting switch as a *pinned* brightness; Adaptive Lighting
+applies it and independently adapts **colour temperature** (warm evenings, cool
+midday). AL's own brightness curve is deliberately not used — it runs opposite
+to daylight compensation.
+
+Basement is windowless and keeps its motion-driven behaviour (with a late-night
+soft level) at `light_intensity`, in `automations.yaml`.
 
 ### Overrides
 
 - **Manual (per windowed room):** toggle the room's override boolean —
   `input_boolean.living_room_max_light` (Living Room, existing), or
   `light_override_office` / `light_override_johan`. While on, the room is pinned
-  to `light_intensity` and Adaptive Lighting stops adapting it; turning it off
-  resumes adaptation. (Adaptive Lighting also auto-pauses on any manual change
-  via `take_over_control`, resuming after `autoreset_control_seconds`.)
-- **Permanent (windowless):** built in for Viktualie and Basement, as above.
+  to full `light_intensity` and Adaptive Lighting stops adapting it; clearing it
+  resumes the envelope. (AL also auto-pauses on any manual change via
+  `take_over_control`, resuming after `autoreset_control_seconds`.)
+- **Permanent (windowless):** set a room's `window_ratio` to 0 — its lights then
+  always track `light_intensity` with no daylight dimming (Viktualie, Basement).
 
-### High-latitude summer tuning
+### Colour-temperature schedule (high-latitude tuning)
 
-At ~56°N the sun rises around 04:00 and sets around 22:00 in midsummer, which
-naively keeps lights bright all evening and ramps them up at dawn. The package
-clamps the virtual sun events with time bounds:
+Colour temperature still follows the sun via Adaptive Lighting. At ~56°N the sun
+rises ~04:00 and sets ~22:00 in midsummer, so the virtual sun events are clamped
+with time bounds to keep the warm/cool schedule sensible:
 
 | Setting | Value | Effect |
 |---|---|---|
-| `min_sunrise_time` | `06:00` | Summer: do **not** ramp up at a 04:00 sunrise. |
-| `max_sunrise_time` | `08:00` | Winter: reach full "morning" by 08:00. |
-| `min_sunset_time` | `20:00` | Winter: do **not** start dimming before 20:00. |
-| `max_sunset_time` | `21:30` | **Summer key:** begin the evening wind-down by 21:30 even though the sun is still up. |
+| `min_sunrise_time` | `06:00` | Summer: do **not** go cool at a 04:00 sunrise. |
+| `max_sunrise_time` | `08:00` | Winter: reach cool "daytime" by 08:00. |
+| `min_sunset_time` | `20:00` | Winter: do **not** warm down before 20:00. |
+| `max_sunset_time` | `21:30` | Summer: begin warming by 21:30 even though the sun is still up. |
 
-`max_sunset_time` is the single most important lever for the summer-evening
-goal. Johan's room winds down earlier (`20:30`).
+Johan's room (warm-white bulbs) warms down earlier (`20:30`).
 
 ### Apply
 
@@ -406,14 +423,9 @@ goal. Johan's room winds down earlier (`20:30`).
 
 3. Copy `packages/lighting.yaml` to `/config/packages/`, and make sure
    `automations.yaml` / `scenes.yaml` are in `/config/` (HA includes them by
-   default). Restart Home Assistant. Three switches appear:
-   `switch.adaptive_lighting_living_room`, `switch.adaptive_lighting_office`,
-   and `switch.adaptive_lighting_johan`.
-
-### High-latitude summer tuning (recap)
-
-`max_sunset_time: 21:30` is the single most important lever — it forces the
-evening wind-down even though the midsummer sun is up until ~22:00.
+   default). Restart Home Assistant. Four switches appear:
+   `switch.adaptive_lighting_living_room`, `_office`, `_johan`, and
+   `_viktualie`.
 
 ### Notes & gotchas
 
@@ -425,8 +437,8 @@ evening wind-down even though the midsummer sun is up until ~22:00.
   it by hand; `autoreset_control_seconds: 3600` resumes after an hour. (The
   option is `autoreset_control_seconds`, not the `manual_control_reset_time`
   name seen in some older write-ups.)
-- **Warm-white bulbs** (Johan) only have their brightness adapted; colour
-  temperature stays in the cosy 2200–2700 K range.
+- **Warm-white bulbs** (Johan): colour temperature only varies within the cosy
+  2200–2700 K range; brightness follows the daylight envelope like every room.
 - **IKEA bulbs** can mishandle simultaneous colour-temp + brightness commands —
   `separate_turn_on_commands` + `send_split_delay: 500` split them.
 - **Zigbee mesh:** short `transition: 1` keeps frequent updates light on the
