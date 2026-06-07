@@ -127,6 +127,9 @@ automation:
             - service: adaptive_lighting.change_switch_settings
               data:
                 entity_id: "{{ repeat.item }}"
+                # reset every other setting to the configured values, so the
+                # boost only ever moves max_brightness (never the summer bounds)
+                use_defaults: configuration
                 # base 85, clamped to 100
                 max_brightness: >-
                   {{ [100, 85 + (boost_map[states('weather.forecast_home')] | default(10))] | min }}
