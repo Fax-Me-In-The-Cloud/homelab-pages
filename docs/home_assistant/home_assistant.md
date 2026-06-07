@@ -343,41 +343,63 @@ Verify the credentials are loaded as environment variables in the Home Assistant
 kubectl exec -it $(kubectl get pods -n home-assistant -l app=home-assistant -o jsonpath='{.items[0].metadata.name}') -n home-assistant -- env | grep HEATPUMP_
 ```
 
-## Dashboards
-
-The Lovelace dashboards run in **storage (UI) mode**, so their config lives in
-`/config/.storage/lovelace.*` on the PVC and is not otherwise versioned. The
-paste-able config for each is backed up here under `dashboards/`:
-
-| File | Dashboard | Notes |
-|---|---|---|
-| `dashboards/heating.yaml` | Heating | Heat-pump monitoring — thermostats, history graphs, electricity-price forecast (needs the `apexcharts-card` HACS resource). |
-| `dashboards/rooms.yaml` | Rooms | One view (tab) per room in a tile-based control style — lights, climate, scenes, media, key sensors. |
-
-### Restore or create a dashboard from a backup
-
-For an existing dashboard: open it, enter edit mode, **⋮ → Raw configuration
-editor**, and paste the file's contents.
-
-For a new dashboard (e.g. Rooms): **Settings → Dashboards → Add dashboard →
-New dashboard from scratch**, give it a title, then open it and paste the
-contents via the raw-configuration editor as above.
-
-> These are backups of the live config. After editing a dashboard in the UI,
-> re-export the raw configuration here to keep this copy current.
-
-### Utility scripts
+## Utility scripts
 
 Helper scripts for factory-resetting IKEA bulbs by power-cycling the
 smart plug they are connected to. Each takes a `switch` entity as input and
 toggles it on a fixed schedule — the bulb resets after the required number of
 off/on cycles.
 
+| File | Import to | Notes |
+|---|---|---|
+| `reset_ikea_bulb.yaml` | a key in `/config/scripts.yaml` | 6 power cycles (standard TRADFRI bulb). |
+| `reset_ikea_kajplats.yaml` | a key in `/config/scripts.yaml` | 12 power cycles (KAJPLATS bulb). |
+
+Home Assistant already loads scripts from that file (`script: !include
+scripts.yaml`). Add each script under its key (`reset_ikea_bulb:` /
+`reset_ikea_kajplats:`) in `/config/scripts.yaml` — the file in this repo is the
+body for that key — then reload via **Developer Tools → YAML → Scripts** (no UI
+editing needed).
+
+## Dashboards
+
+Dashboards are managed as **YAML-mode dashboards**: Home Assistant loads each
+from a file under `/config/dashboards/`, so they stay in source control and
+need no UI editing.
+
+| File | Import to | Dashboard |
+|---|---|---|
+| `dashboards/rooms.yaml` | `/config/dashboards/rooms.yaml` | **Rooms** — one tab per room (tile control style). |
+| `dashboards/heating.yaml` | `/config/dashboards/heating.yaml` | **Heating** — heat-pump monitoring (needs the apexcharts resource below). |
+
+Register them in `configuration.yaml`:
+
 ```yaml
-reset_ikea_bulb.yaml       # 6 power cycles (standard TRADFRI bulb)
-reset_ikea_kajplats.yaml   # 12 power cycles (KAJPLATS bulb)
+lovelace:
+  mode: storage          # keep the default dashboard (and any UI dashboards)
+  dashboards:
+    rooms:
+      mode: yaml
+      title: Rooms
+      icon: mdi:floor-plan
+      show_in_sidebar: true
+      filename: dashboards/rooms.yaml
+    heating:
+      mode: yaml
+      title: Heating
+      icon: mdi:heat-pump-outline
+      show_in_sidebar: true
+      filename: dashboards/heating.yaml
+  resources:
+    - url: /hacsfiles/apexcharts-card/apexcharts-card.js   # required by heating.yaml
+      type: module
 ```
 
-These live in Home Assistant as scripts (**Settings → Automations & Scenes →
-Scripts**). Paste the YAML into a new script in YAML-edit mode, or add the
-contents under the matching key in `/config/scripts.yaml`.
+Copy the files to `/config/dashboards/`, then reload via **Developer Tools →
+YAML → Lovelace dashboards** (or restart). YAML-mode dashboards are
+intentionally not editable in the UI — change the file and reload.
+
+> The existing **Heating** dashboard is currently storage-mode
+> (`dashboard-heating`). The YAML-mode entry above appears as a separate
+> sidebar item; once you've switched over, delete the old storage version to
+> avoid a duplicate.

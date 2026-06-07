@@ -1,3 +1,6 @@
+# Home Assistant YAML-mode dashboard — "Rooms"
+# Import to: /config/dashboards/rooms.yaml
+# Loaded via the lovelace: block in configuration.yaml (see home_assistant.md).
 views:
 - title: Living Room
   path: living-room

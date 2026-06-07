@@ -1,3 +1,7 @@
+# Home Assistant YAML-mode dashboard — "Heating"
+# Import to: /config/dashboards/heating.yaml
+# Loaded via the lovelace: block in configuration.yaml; requires the
+# apexcharts-card resource (declared there).
 views:
 - title: Home
   sections:
