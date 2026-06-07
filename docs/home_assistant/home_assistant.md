@@ -343,6 +343,73 @@ Verify the credentials are loaded as environment variables in the Home Assistant
 kubectl exec -it $(kubectl get pods -n home-assistant -l app=home-assistant -o jsonpath='{.items[0].metadata.name}') -n home-assistant -- env | grep HEATPUMP_
 ```
 
+## Adaptive lighting (summer-aware)
+
+Dynamically adjusts smart-light brightness and colour temperature by time of
+day and season, and reduces brightness automatically during the long Danish
+summer evenings. Two layers:
+
+1. **Sun-elevation circadian control** via the
+   [Adaptive Lighting](https://github.com/basnijholt/adaptive-lighting) HACS
+   integration — cooler/brighter near midday, warmer/dimmer toward sunset.
+2. **Cloud-cover boost** — a companion automation that raises `max_brightness`
+   on overcast/wet days (using `weather.forecast_home`) and lowers it when
+   clear, on top of the circadian curve.
+
+Config: `adaptive_lighting/adaptive_lighting.yaml` (a Home Assistant package
+containing both the `adaptive_lighting:` switches and the boost automation).
+
+### High-latitude summer tuning
+
+At ~56°N the sun rises around 04:00 and sets around 22:00 in midsummer, which
+naively keeps lights bright all evening and ramps them up at dawn. The package
+clamps the virtual sun events with time bounds:
+
+| Setting | Value | Effect |
+|---|---|---|
+| `min_sunrise_time` | `06:00` | Summer: do **not** ramp up at a 04:00 sunrise. |
+| `max_sunrise_time` | `08:00` | Winter: reach full "morning" by 08:00. |
+| `min_sunset_time` | `20:00` | Winter: do **not** start dimming before 20:00. |
+| `max_sunset_time` | `21:30` | **Summer key:** begin the evening wind-down by 21:30 even though the sun is still up. |
+
+`max_sunset_time` is the single most important lever for the summer-evening
+goal. Johan's room winds down earlier (`20:30`).
+
+### Apply
+
+1. Install **Adaptive Lighting** via HACS, then restart Home Assistant.
+2. Enable packages in `configuration.yaml`:
+
+    ```yaml
+    homeassistant:
+      packages: !include_dir_named packages
+    ```
+
+3. Copy `adaptive_lighting.yaml` to `/config/packages/` (use the VS Code
+   Server) and restart Home Assistant. Two switches appear:
+   `switch.adaptive_lighting_living_areas` and `switch.adaptive_lighting_johan`.
+
+### Notes & gotchas
+
+- **Manual override:** `take_over_control` stops adapting a light once you
+  change it by hand; `autoreset_control_seconds: 3600` resumes after an hour.
+  (The integration option is `autoreset_control_seconds`, not the
+  `manual_control_reset_time` name seen in some older write-ups.)
+- **Warm-white bulbs** (Johan) only have their brightness adapted; colour
+  temperature stays in the cosy 2200–2700 K range.
+- **IKEA bulbs** can mishandle simultaneous colour-temp + brightness commands —
+  `separate_turn_on_commands` + `send_split_delay: 500` split them.
+- **Zigbee mesh:** short `transition: 1` keeps frequent updates light on the
+  mesh; raise `interval` if lights feel laggy.
+- **Unassigned bulbs:** `light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_4`
+  and `light.kajplats_e27_ws_globe_1521lm` have no area and are **not** included
+  yet — assign them an area and add them to the `lights:` list to cover them.
+- **Optional lux refinement:** a real illuminance sensor
+  (`sensor.night_light_illuminance`) could drive brightness via
+  [adaptive-lux-lighting](https://github.com/max-mathieu/adaptive-lux-lighting)
+  instead of the weather-condition heuristic, for more accurate cloud
+  compensation.
+
 ### Utility scripts
 
 Helper scripts for factory-resetting IKEA bulbs by power-cycling the

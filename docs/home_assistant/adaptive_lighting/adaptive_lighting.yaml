@@ -1,0 +1,132 @@
+# Adaptive Lighting — summer-aware circadian lighting
+# Resolves: "Automate light intensity during summer months" (issue #2)
+#
+# Sun-elevation circadian control via the Adaptive Lighting HACS integration
+# (basnijholt/adaptive-lighting), tuned for high-latitude (Denmark, ~56 N)
+# summers where the sun rises ~04:00 and sets ~22:00, plus a cloud-cover
+# brightness boost layered on top via the companion automation.
+#
+# This is a Home Assistant *package*. To apply:
+#   1. Install "Adaptive Lighting" via HACS and restart HA.
+#   2. Enable packages in configuration.yaml:
+#        homeassistant:
+#          packages: !include_dir_named packages
+#   3. Drop this file in config/packages/adaptive_lighting.yaml and restart HA.
+#
+# The high-latitude summer levers are the sunrise/sunset *time bounds*: the
+# real sun events are clamped so lights neither ramp up at a 04:00 sunrise nor
+# stay bright until a 22:00 sunset.
+
+adaptive_lighting:
+  # ---- Living areas: color-temperature capable bulbs -----------------------
+  - name: "Living Areas"
+    lights:
+      - light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm
+      - light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_2
+      - light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_3
+      - light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_5
+      - light.ikea_of_sweden_tradfri_bulb_e14_ws_globe_470lm
+      - light.ikea_of_sweden_tradfri_bulb_e14_cws_globe_806lm
+      - light.ikea_of_sweden_tradfribulbe27wsglobeopal1055lm
+      - light.night_light
+      - light.office_bulb_01
+      - light.kajplats_gu10_ws_575lm
+      - light.kajplats_gu10_ws_575lm_2
+      - light.kajplats_gu10_ws_575lm_3
+      - light.kajplats_gu10_ws_575lm_4
+      - light.basement_smart_bulb_01
+      - light.basement_smart_bulb_02
+      - light.basement_smart_bulb_03
+    brightness_mode: tanh        # S-curve ramp, more natural than linear
+    min_brightness: 20
+    max_brightness: 85           # raised toward 100 on cloudy days by the automation
+    min_color_temp: 2200         # warm in the evening
+    max_color_temp: 4000         # cool-white at midday
+    prefer_rgb_color: false
+    # High-latitude summer guards:
+    min_sunrise_time: "06:00:00" # summer: do not ramp up at a 04:00 sunrise
+    max_sunrise_time: "08:00:00" # winter: reach full "morning" by 08:00
+    min_sunset_time: "20:00:00"  # winter: do not start dimming before 20:00
+    max_sunset_time: "21:30:00"  # summer KEY: begin the evening wind-down by 21:30
+    transition: 1                # 1 s transitions are gentle on the Zigbee mesh
+    interval: 90
+    take_over_control: true      # stop adapting a light after a manual change
+    detect_non_ha_changes: false
+    autoreset_control_seconds: 3600  # resume adapting 1 h after a manual override
+    separate_turn_on_commands: true  # IKEA bulbs handle ct + brightness better split
+    send_split_delay: 500            # ms between the split commands
+
+  # ---- Johan: warm-white-only bulbs (brightness adapts, color temp fixed) ---
+  - name: "Johan"
+    lights:
+      - light.ikea_of_sweden_tradfri_bulb_e27_ww_806lm
+      - light.ikea_of_sweden_tradfri_bulb_e27_ww_globe_806lm
+      - light.ikea_of_sweden_tradfri_driver_30w
+    brightness_mode: tanh
+    min_brightness: 15
+    max_brightness: 80
+    min_color_temp: 2200
+    max_color_temp: 2700         # warm-white bulbs; keep the range cosy
+    min_sunrise_time: "06:30:00"
+    max_sunrise_time: "08:00:00"
+    min_sunset_time: "19:30:00"
+    max_sunset_time: "20:30:00"  # kid's room: wind down earlier than living areas
+    transition: 1
+    interval: 90
+    take_over_control: true
+    detect_non_ha_changes: false
+    autoreset_control_seconds: 3600
+
+# ---------------------------------------------------------------------------
+# Cloud-cover brightness boost
+# ---------------------------------------------------------------------------
+# Adaptive Lighting is sun-position only; it does not know it is overcast. This
+# automation nudges each switch's max_brightness up on cloudy/wet days and back
+# down when it is clear, using the weather condition. It uses Adaptive
+# Lighting's own change_switch_settings service so it cooperates with (rather
+# than fights) the circadian curve.
+automation:
+  - id: adaptive_lighting_cloud_cover_boost
+    alias: "Adaptive Lighting: cloud-cover brightness boost"
+    description: >-
+      Raise Adaptive Lighting max_brightness on overcast/wet weather and lower
+      it again when clear, on top of the sun-elevation curve.
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: weather.forecast_home
+      - platform: homeassistant
+        event: start
+      - platform: time_pattern
+        minutes: "/30"
+    variables:
+      # Extra brightness percentage points added on top of the base, by condition.
+      boost_map:
+        sunny: 0
+        clear-night: 0
+        partlycloudy: 8
+        cloudy: 15
+        fog: 18
+        hail: 18
+        lightning: 18
+        lightning-rainy: 18
+        pouring: 18
+        rainy: 15
+        snowy: 18
+        snowy-rainy: 18
+        windy: 5
+        windy-variant: 5
+        exceptional: 10
+      al_switches:
+        - switch.adaptive_lighting_living_areas
+        - switch.adaptive_lighting_johan
+    action:
+      - repeat:
+          for_each: "{{ al_switches }}"
+          sequence:
+            - service: adaptive_lighting.change_switch_settings
+              data:
+                entity_id: "{{ repeat.item }}"
+                # base 85, clamped to 100
+                max_brightness: >-
+                  {{ [100, 85 + (boost_map[states('weather.forecast_home')] | default(10))] | min }}
