@@ -343,6 +343,29 @@ Verify the credentials are loaded as environment variables in the Home Assistant
 kubectl exec -it $(kubectl get pods -n home-assistant -l app=home-assistant -o jsonpath='{.items[0].metadata.name}') -n home-assistant -- env | grep HEATPUMP_
 ```
 
+## Dashboards
+
+The Lovelace dashboards run in **storage (UI) mode**, so their config lives in
+`/config/.storage/lovelace.*` on the PVC and is not otherwise versioned. The
+paste-able config for each is backed up here under `dashboards/`:
+
+| File | Dashboard | Notes |
+|---|---|---|
+| `dashboards/heating.yaml` | Heating | Heat-pump monitoring — thermostats, history graphs, electricity-price forecast (needs the `apexcharts-card` HACS resource). |
+| `dashboards/rooms.yaml` | Rooms | One view (tab) per room in a tile-based control style — lights, climate, scenes, media, key sensors. |
+
+### Restore or create a dashboard from a backup
+
+For an existing dashboard: open it, enter edit mode, **⋮ → Raw configuration
+editor**, and paste the file's contents.
+
+For a new dashboard (e.g. Rooms): **Settings → Dashboards → Add dashboard →
+New dashboard from scratch**, give it a title, then open it and paste the
+contents via the raw-configuration editor as above.
+
+> These are backups of the live config. After editing a dashboard in the UI,
+> re-export the raw configuration here to keep this copy current.
+
 ### Utility scripts
 
 Helper scripts for factory-resetting IKEA bulbs by power-cycling the
