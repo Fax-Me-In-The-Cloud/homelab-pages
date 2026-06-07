@@ -1,0 +1,674 @@
+- id: '1765697665724'
+  name: 'Scene: Living Room: Lights Default'
+  entities:
+    light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_3:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      supported_color_modes:
+      - color_temp
+      color_mode: color_temp
+      brightness: 254
+      color_temp_kelvin: 2403
+      color_temp: 416
+      hs_color:
+      - 29.142
+      - 76.154
+      rgb_color:
+      - 255
+      - 155
+      - 61
+      xy_color:
+      - 0.557
+      - 0.389
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 01
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_5:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      supported_color_modes:
+      - color_temp
+      color_mode: color_temp
+      brightness: 254
+      color_temp_kelvin: 2403
+      color_temp: 416
+      hs_color:
+      - 29.142
+      - 76.154
+      rgb_color:
+      - 255
+      - 155
+      - 61
+      xy_color:
+      - 0.557
+      - 0.389
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 02
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfribulbe27wsglobeopal1055lm:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      supported_color_modes:
+      - color_temp
+      color_mode: color_temp
+      brightness: 254
+      color_temp_kelvin: 2403
+      color_temp: 416
+      hs_color:
+      - 29.142
+      - 76.154
+      rgb_color:
+      - 255
+      - 155
+      - 61
+      xy_color:
+      - 0.557
+      - 0.389
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 03
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_bulb_e14_ws_globe_470lm:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      supported_color_modes:
+      - color_temp
+      color_mode: color_temp
+      brightness: 254
+      color_temp_kelvin: 2403
+      color_temp: 416
+      hs_color:
+      - 29.142
+      - 76.154
+      rgb_color:
+      - 255
+      - 155
+      - 61
+      xy_color:
+      - 0.557
+      - 0.389
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 05
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_2:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      supported_color_modes:
+      - color_temp
+      color_mode: color_temp
+      brightness: 254
+      color_temp_kelvin: 2403
+      color_temp: 416
+      hs_color:
+      - 29.142
+      - 76.154
+      rgb_color:
+      - 255
+      - 155
+      - 61
+      xy_color:
+      - 0.557
+      - 0.389
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 06
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      supported_color_modes:
+      - color_temp
+      color_mode: color_temp
+      brightness: 254
+      color_temp_kelvin: 4000
+      color_temp: 250
+      hs_color:
+      - 26.812
+      - 34.87
+      rgb_color:
+      - 255
+      - 206
+      - 166
+      xy_color:
+      - 0.42
+      - 0.365
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 04
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_bulb_e14_cws_globe_806lm:
+      min_color_temp_kelvin: 2000
+      max_color_temp_kelvin: 6535
+      min_mireds: 153
+      max_mireds: 500
+      effect_list:
+      - 'off'
+      - colorloop
+      supported_color_modes:
+      - color_temp
+      - xy
+      effect: 'off'
+      color_mode: color_temp
+      brightness: 254
+      color_temp_kelvin: 2000
+      color_temp: 500
+      hs_color:
+      - 30.601
+      - 94.547
+      rgb_color:
+      - 255
+      - 137
+      - 14
+      xy_color:
+      - 0.598
+      - 0.383
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 07
+      supported_features: 44
+      state: 'on'
+  icon: mdi:lightbulb
+  metadata: {}
+- id: '1765711170097'
+  name: 'Scene: Johan: Lights Daytime'
+  entities:
+    light.ikea_of_sweden_tradfri_bulb_e27_ww_806lm:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 190
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Johan 01
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_bulb_e27_ww_globe_806lm:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 190
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Johan 02
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_driver_30w:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 190
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Klædeskab
+      supported_features: 40
+      state: 'on'
+  icon: mdi:lightbulb-auto
+  metadata: {}
+- id: '1765716968299'
+  name: 'Scene: Living Room: Lights Daytime'
+  entities:
+    light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_3:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      supported_color_modes:
+      - color_temp
+      color_mode: color_temp
+      brightness: 190
+      color_temp_kelvin: 2403
+      color_temp: 416
+      hs_color:
+      - 29.142
+      - 76.154
+      rgb_color:
+      - 255
+      - 155
+      - 61
+      xy_color:
+      - 0.557
+      - 0.389
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 01
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_5:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      supported_color_modes:
+      - color_temp
+      color_mode: color_temp
+      brightness: 190
+      color_temp_kelvin: 2403
+      color_temp: 416
+      hs_color:
+      - 29.142
+      - 76.154
+      rgb_color:
+      - 255
+      - 155
+      - 61
+      xy_color:
+      - 0.557
+      - 0.389
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 02
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfribulbe27wsglobeopal1055lm:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      supported_color_modes:
+      - color_temp
+      color_mode: color_temp
+      brightness: 190
+      color_temp_kelvin: 2403
+      color_temp: 416
+      hs_color:
+      - 29.142
+      - 76.154
+      rgb_color:
+      - 255
+      - 155
+      - 61
+      xy_color:
+      - 0.557
+      - 0.389
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 03
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_bulb_e14_ws_globe_470lm:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      supported_color_modes:
+      - color_temp
+      color_mode: color_temp
+      brightness: 190
+      color_temp_kelvin: 2403
+      color_temp: 416
+      hs_color:
+      - 29.142
+      - 76.154
+      rgb_color:
+      - 255
+      - 155
+      - 61
+      xy_color:
+      - 0.557
+      - 0.389
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 05
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_2:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      supported_color_modes:
+      - color_temp
+      color_mode: color_temp
+      brightness: 190
+      color_temp_kelvin: 2403
+      color_temp: 416
+      hs_color:
+      - 29.142
+      - 76.154
+      rgb_color:
+      - 255
+      - 155
+      - 61
+      xy_color:
+      - 0.557
+      - 0.389
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 06
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      supported_color_modes:
+      - color_temp
+      color_mode: color_temp
+      brightness: 190
+      color_temp_kelvin: 4000
+      color_temp: 250
+      hs_color:
+      - 26.812
+      - 34.87
+      rgb_color:
+      - 255
+      - 206
+      - 166
+      xy_color:
+      - 0.42
+      - 0.365
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 04
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_bulb_e14_cws_globe_806lm:
+      min_color_temp_kelvin: 2000
+      max_color_temp_kelvin: 6535
+      min_mireds: 153
+      max_mireds: 500
+      effect_list:
+      - 'off'
+      - colorloop
+      supported_color_modes:
+      - color_temp
+      - xy
+      effect: 'off'
+      color_mode: color_temp
+      brightness: 190
+      color_temp_kelvin: 2000
+      color_temp: 500
+      hs_color:
+      - 30.601
+      - 94.547
+      rgb_color:
+      - 255
+      - 137
+      - 14
+      xy_color:
+      - 0.598
+      - 0.383
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 07
+      supported_features: 44
+      state: 'on'
+  icon: mdi:lightbulb
+  metadata: {}
+- id: '1765730718488'
+  name: 'Scene: Johan: Lights Dark Outside'
+  entities:
+    light.ikea_of_sweden_tradfri_bulb_e27_ww_806lm:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 254
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Johan 01
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_bulb_e27_ww_globe_806lm:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 254
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Johan 02
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_driver_30w:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 254
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Klædeskab
+      supported_features: 40
+      state: 'on'
+  icon: mdi:lightbulb-auto
+  metadata: {}
+- id: '1766166026221'
+  name: 'Scene: Living Room: Lights TV Mode'
+  entities:
+    light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_3:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      supported_color_modes:
+      - color_temp
+      color_mode: color_temp
+      brightness: 60
+      color_temp_kelvin: 2403
+      color_temp: 416
+      hs_color:
+      - 29.142
+      - 76.154
+      rgb_color:
+      - 255
+      - 155
+      - 61
+      xy_color:
+      - 0.557
+      - 0.389
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 01
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_5:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      supported_color_modes:
+      - color_temp
+      color_mode: color_temp
+      brightness: 60
+      color_temp_kelvin: 2403
+      color_temp: 416
+      hs_color:
+      - 29.142
+      - 76.154
+      rgb_color:
+      - 255
+      - 155
+      - 61
+      xy_color:
+      - 0.557
+      - 0.389
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 02
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfribulbe27wsglobeopal1055lm:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      supported_color_modes:
+      - color_temp
+      color_mode: color_temp
+      brightness: 60
+      color_temp_kelvin: 2403
+      color_temp: 416
+      hs_color:
+      - 29.142
+      - 76.154
+      rgb_color:
+      - 255
+      - 155
+      - 61
+      xy_color:
+      - 0.557
+      - 0.389
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 03
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_bulb_e14_ws_globe_470lm:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      supported_color_modes:
+      - color_temp
+      color_mode: color_temp
+      brightness: 60
+      color_temp_kelvin: 2403
+      color_temp: 416
+      hs_color:
+      - 29.142
+      - 76.154
+      rgb_color:
+      - 255
+      - 155
+      - 61
+      xy_color:
+      - 0.557
+      - 0.389
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 05
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_2:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      supported_color_modes:
+      - color_temp
+      color_mode: color_temp
+      brightness: 60
+      color_temp_kelvin: 2403
+      color_temp: 416
+      hs_color:
+      - 29.142
+      - 76.154
+      rgb_color:
+      - 255
+      - 155
+      - 61
+      xy_color:
+      - 0.557
+      - 0.389
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 06
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      supported_color_modes:
+      - color_temp
+      color_mode: color_temp
+      brightness: 60
+      color_temp_kelvin: 4000
+      color_temp: 250
+      hs_color:
+      - 26.812
+      - 34.87
+      rgb_color:
+      - 255
+      - 206
+      - 166
+      xy_color:
+      - 0.42
+      - 0.365
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 04
+      supported_features: 40
+      state: 'on'
+    light.ikea_of_sweden_tradfri_bulb_e14_cws_globe_806lm:
+      min_color_temp_kelvin: 2202
+      max_color_temp_kelvin: 4000
+      min_mireds: 250
+      max_mireds: 454
+      effect_list:
+      - 'off'
+      - colorloop
+      supported_color_modes:
+      - color_temp
+      - xy
+      effect: 'off'
+      color_mode: color_temp
+      brightness: 60
+      color_temp_kelvin: 2000
+      color_temp: 500
+      hs_color:
+      - 30.601
+      - 94.547
+      rgb_color:
+      - 255
+      - 137
+      - 14
+      xy_color:
+      - 0.598
+      - 0.383
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Living Room 07
+      supported_features: 44
+      state: 'on'
+  icon: mdi:lightbulb
+  metadata: {}
+- id: '1766218497577'
+  name: 'Office: Lights: Daytime'
+  entities:
+    light.office_bulb_01:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 175
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Office 01
+      supported_features: 40
+      state: 'on'
+  metadata: {}
+- id: '1766218521745'
+  name: 'Office: Lights: Dark Outside'
+  entities:
+    light.office_bulb_01:
+      supported_color_modes:
+      - brightness
+      color_mode: brightness
+      brightness: 254
+      off_with_transition: false
+      off_brightness:
+      friendly_name: Smart Bulb Office 01
+      supported_features: 40
+      state: 'on'
+  metadata: {}

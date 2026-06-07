@@ -1,0 +1,296 @@
+# Lighting system — central intensity, adaptive lighting, and overrides
+# Resolves: issue #2 (summer adaptive lighting) + issue #25 (central intensity
+# helper + overrides + config-as-code).
+#
+# Import to: /config/packages/lighting.yaml
+# Loaded via packages in configuration.yaml:
+#     homeassistant:
+#       packages: !include_dir_named packages
+# Requires the Adaptive Lighting HACS integration installed. After dropping the
+# file in, restart Home Assistant.
+#
+# Model
+# -----
+# * input_number.light_intensity is the ONE master value to reference (0-100 %).
+# * Windowed rooms (Living Room, Office, Johan) are driven by Adaptive Lighting;
+#   light_intensity is their max-brightness CEILING (daylight still shapes the
+#   curve below it).
+# * Windowless rooms (Viktualie, Basement) get a PERMANENT override: their lights
+#   always track light_intensity, with no daylight dimming. (Basement keeps its
+#   late-night soft level, derived from light_intensity, in automations.yaml.)
+# * MANUAL override per windowed room pins it to light_intensity and pauses
+#   adaptive control until cleared (Living Room reuses the existing
+#   input_boolean.living_room_max_light).
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+input_number:
+  light_intensity:
+    name: Light Intensity
+    icon: mdi:brightness-6
+    min: 0
+    max: 100
+    step: 5
+    initial: 80          # code-defined baseline (without this it starts at min=0)
+    unit_of_measurement: "%"
+    mode: slider
+
+input_boolean:
+  # Living Room already has input_boolean.living_room_max_light (existing
+  # helper) — it is the Living Room manual override and is reused below.
+  light_override_office:
+    name: Office Light Override
+    icon: mdi:lightbulb-on-outline
+  light_override_johan:
+    name: Johan Light Override
+    icon: mdi:lightbulb-on-outline
+
+# ---------------------------------------------------------------------------
+# Adaptive Lighting — windowed rooms only
+# ---------------------------------------------------------------------------
+# max_brightness starts at 80 and is kept in sync with light_intensity by the
+# "central ceiling" automation below. High-latitude summer time-bounds clamp the
+# virtual sun events (max_sunset_time is the key summer-evening lever).
+adaptive_lighting:
+  - name: "Living Room"
+    lights:
+      - light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm
+      - light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_2
+      - light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_3
+      - light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_5
+      - light.ikea_of_sweden_tradfri_bulb_e14_ws_globe_470lm
+      - light.ikea_of_sweden_tradfri_bulb_e14_cws_globe_806lm
+      - light.ikea_of_sweden_tradfribulbe27wsglobeopal1055lm
+      - light.night_light
+    brightness_mode: tanh
+    min_brightness: 20
+    max_brightness: 80
+    min_color_temp: 2200
+    max_color_temp: 4000
+    min_sunrise_time: "06:00:00"
+    max_sunrise_time: "08:00:00"
+    min_sunset_time: "20:00:00"
+    max_sunset_time: "21:30:00"
+    transition: 1
+    interval: 90
+    take_over_control: true
+    detect_non_ha_changes: false
+    autoreset_control_seconds: 3600
+    separate_turn_on_commands: true
+    send_split_delay: 500
+
+  - name: "Office"
+    lights:
+      - light.office_bulb_01
+    brightness_mode: tanh
+    min_brightness: 20
+    max_brightness: 80
+    min_color_temp: 2200
+    max_color_temp: 4000
+    min_sunrise_time: "06:00:00"
+    max_sunrise_time: "08:00:00"
+    min_sunset_time: "20:00:00"
+    max_sunset_time: "21:30:00"
+    transition: 1
+    interval: 90
+    take_over_control: true
+    autoreset_control_seconds: 3600
+
+  - name: "Johan"
+    lights:
+      - light.ikea_of_sweden_tradfri_bulb_e27_ww_806lm
+      - light.ikea_of_sweden_tradfri_bulb_e27_ww_globe_806lm
+      - light.ikea_of_sweden_tradfri_driver_30w
+    brightness_mode: tanh
+    min_brightness: 15
+    max_brightness: 80
+    min_color_temp: 2200
+    max_color_temp: 2700
+    min_sunrise_time: "06:30:00"
+    max_sunrise_time: "08:00:00"
+    min_sunset_time: "19:30:00"
+    max_sunset_time: "20:30:00"
+    transition: 1
+    interval: 90
+    take_over_control: true
+    autoreset_control_seconds: 3600
+
+# ---------------------------------------------------------------------------
+# Automations
+# ---------------------------------------------------------------------------
+automation:
+  # --- Central ceiling: light_intensity -> Adaptive Lighting max_brightness ---
+  - id: lighting_central_ceiling
+    alias: "Lighting: apply central intensity ceiling"
+    description: >-
+      Keep each Adaptive Lighting switch's max_brightness in sync with
+      input_number.light_intensity (the master ceiling for windowed rooms).
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: input_number.light_intensity
+      - platform: homeassistant
+        event: start
+    variables:
+      al_switches:
+        - switch.adaptive_lighting_living_room
+        - switch.adaptive_lighting_office
+        - switch.adaptive_lighting_johan
+    action:
+      - repeat:
+          for_each: "{{ al_switches }}"
+          sequence:
+            - service: adaptive_lighting.change_switch_settings
+              data:
+                entity_id: "{{ repeat.item }}"
+                use_defaults: current   # only touch max_brightness
+                max_brightness: "{{ states('input_number.light_intensity') | int(80) }}"
+
+  # --- Cloud-cover floor boost: raise min_brightness on gloomy weather --------
+  # Stays under the ceiling (raises the floor, not the cap) so light_intensity
+  # remains the firm maximum.
+  - id: lighting_cloud_cover_floor
+    alias: "Lighting: cloud-cover floor boost"
+    description: >-
+      On overcast/wet weather, raise Adaptive Lighting min_brightness so rooms
+      do not get gloomy; lower it again when clear.
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: weather.forecast_home
+      - platform: homeassistant
+        event: start
+      - platform: time_pattern
+        minutes: "/30"
+    variables:
+      floor_map:
+        sunny: 20
+        clear-night: 20
+        partlycloudy: 30
+        cloudy: 45
+        fog: 50
+        hail: 50
+        lightning: 45
+        lightning-rainy: 50
+        pouring: 55
+        rainy: 50
+        snowy: 50
+        snowy-rainy: 50
+        windy: 25
+        windy-variant: 25
+        exceptional: 40
+      al_switches:
+        - switch.adaptive_lighting_living_room
+        - switch.adaptive_lighting_office
+        - switch.adaptive_lighting_johan
+    action:
+      - repeat:
+          for_each: "{{ al_switches }}"
+          sequence:
+            - service: adaptive_lighting.change_switch_settings
+              data:
+                entity_id: "{{ repeat.item }}"
+                use_defaults: current   # only touch min_brightness
+                # never exceed the ceiling
+                min_brightness: >-
+                  {{ [floor_map[states('weather.forecast_home')] | default(30),
+                      states('input_number.light_intensity') | int(80)] | min }}
+
+  # --- Windowless permanent override: Viktualie ------------------------------
+  # Basement's permanent override is folded into "Basement: Lights: Activate" in
+  # automations.yaml (it already gates on motion/time).
+  - id: lighting_viktualie_permanent_override
+    alias: "Lighting: Viktualie permanent override"
+    description: >-
+      Windowless pantry: whenever its lights are on, hold them at
+      light_intensity (no daylight dimming). Re-applies when the value changes.
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id:
+          - light.kajplats_gu10_ws_575lm
+          - light.kajplats_gu10_ws_575lm_2
+          - light.kajplats_gu10_ws_575lm_3
+          - light.kajplats_gu10_ws_575lm_4
+        to: "on"
+      - platform: state
+        entity_id: input_number.light_intensity
+    condition:
+      # act only if a Viktualie light is on AND not already at the target level.
+      # the 2 %% brightness deadband stops the turn_on below from re-triggering
+      # this automation (the lights changing to "on" is also a trigger).
+      - condition: template
+        value_template: >-
+          {% set t = states('input_number.light_intensity') | int(80) %}
+          {% set lights = expand('light.kajplats_gu10_ws_575lm',
+                                 'light.kajplats_gu10_ws_575lm_2',
+                                 'light.kajplats_gu10_ws_575lm_3',
+                                 'light.kajplats_gu10_ws_575lm_4')
+                          | selectattr('state','eq','on') | list %}
+          {% set ns = namespace(needs=false) %}
+          {% for l in lights %}
+            {% set b = l.attributes.get('brightness') %}
+            {% if b is none or (((b / 2.55) - t) | abs) > 2 %}{% set ns.needs = true %}{% endif %}
+          {% endfor %}
+          {{ lights | count > 0 and ns.needs }}
+    action:
+      - service: light.turn_on
+        target:
+          area_id: viktualie
+        data:
+          brightness_pct: "{{ states('input_number.light_intensity') | int(80) }}"
+          transition: 1
+
+  # --- Manual overrides: windowed rooms -------------------------------------
+  # ON  -> pin the room to light_intensity and pause adaptive control.
+  # OFF -> resume adaptive control.
+  - id: lighting_manual_override
+    alias: "Lighting: manual room override"
+    description: >-
+      Per-room manual override. While the room's override boolean is on, hold the
+      room at light_intensity and stop Adaptive Lighting from adapting it.
+    mode: parallel
+    trigger:
+      - platform: state
+        entity_id: input_boolean.living_room_max_light
+        id: living_room
+      - platform: state
+        entity_id: input_boolean.light_override_office
+        id: office
+      - platform: state
+        entity_id: input_boolean.light_override_johan
+        id: johan
+    variables:
+      rooms:
+        living_room:
+          area: living_room
+          al_switch: switch.adaptive_lighting_living_room
+        office:
+          area: office
+          al_switch: switch.adaptive_lighting_office
+        johan:
+          area: johan_vaerelse
+          al_switch: switch.adaptive_lighting_johan
+      room: "{{ rooms[trigger.id] }}"
+      is_on: "{{ trigger.to_state.state == 'on' }}"
+    action:
+      - if:
+          - condition: template
+            value_template: "{{ is_on }}"
+        then:
+          - service: adaptive_lighting.set_manual_control
+            data:
+              entity_id: "{{ room.al_switch }}"
+              manual_control: true
+          - service: light.turn_on
+            target:
+              area_id: "{{ room.area }}"
+            data:
+              brightness_pct: "{{ states('input_number.light_intensity') | int(80) }}"
+              transition: 1
+        else:
+          - service: adaptive_lighting.set_manual_control
+            data:
+              entity_id: "{{ room.al_switch }}"
+              manual_control: false

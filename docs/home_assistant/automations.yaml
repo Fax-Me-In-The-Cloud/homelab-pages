@@ -1,0 +1,412 @@
+- id: '1765554726112'
+  alias: 'Office: No Motion: Turn Off Lights'
+  description: Turn off the office light when no motion has been detected an Anders
+    is not active on his Macbook Air
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.motion_sensor_office
+    for:
+      hours: 0
+      minutes: 15
+      seconds: 0
+    from:
+    to:
+    - 'off'
+  conditions:
+  - type: is_off
+    condition: device
+    device_id: 4b1a1245a5fd1ab167bb7f716292a732
+    entity_id: bcbe6f5bba3e7fbd552e0cab7a34c0d0
+    domain: binary_sensor
+  actions:
+  - action: light.turn_off
+    metadata: {}
+    target:
+      entity_id: light.office_bulb_01
+    data:
+      transition: 15
+  mode: single
+- id: '1765568036105'
+  alias: 'Office: Motion Detected: Turn On Lights'
+  description: ''
+  triggers:
+  - type: motion
+    device_id: 084aede4bd76d967356e5e2185197652
+    entity_id: 92efc034efe899da7a53958a1c75b5b9
+    domain: binary_sensor
+    trigger: device
+  - trigger: state
+    entity_id:
+    - binary_sensor.daytime
+    to:
+    - 'on'
+  - trigger: state
+    entity_id:
+    - binary_sensor.daytime
+    to:
+    - 'off'
+  conditions:
+  - type: is_motion
+    condition: device
+    device_id: 084aede4bd76d967356e5e2185197652
+    entity_id: 92efc034efe899da7a53958a1c75b5b9
+    domain: binary_sensor
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: binary_sensor.daytime
+        state:
+        - 'off'
+      sequence:
+      - action: scene.turn_on
+        metadata: {}
+        target:
+          entity_id: scene.office_lights_dark_outside
+        data: {}
+      alias: Dark Outside
+    - conditions:
+      - condition: state
+        entity_id: binary_sensor.daytime
+        state:
+        - 'on'
+      sequence:
+      - action: scene.turn_on
+        metadata: {}
+        target:
+          entity_id: scene.office_lights_daytime
+        data: {}
+      alias: Daytime
+  mode: single
+- id: '1765654148502'
+  alias: 'Living Room: Button Pressed: Toggle Lights'
+  description: ''
+  triggers:
+  - device_id: 277214dd43787ec797456dfff29eba57
+    domain: zha
+    type: remote_button_short_press
+    subtype: remote_button_short_press
+    trigger: device
+  conditions: []
+  actions:
+  - action: light.toggle
+    metadata: {}
+    target:
+      area_id: living_room
+    data: {}
+  mode: single
+- id: '1765657235224'
+  alias: 'Living Room: No Motion Detected: Turn Off Lights'
+  description: ''
+  triggers:
+  - type: no_motion
+    device_id: 1d3f2ec87fdb803d9d96b183c738d599
+    entity_id: 783af3dcae901f43ba29ee7adb292dfc
+    domain: binary_sensor
+    trigger: device
+    for:
+      hours: 0
+      minutes: 30
+      seconds: 0
+  conditions:
+  - condition: state
+    entity_id: input_boolean.tv_mode
+    state:
+    - 'off'
+  actions:
+  - action: light.turn_off
+    metadata: {}
+    target:
+      area_id: living_room
+    data: {}
+  mode: single
+- id: '1766081144645'
+  alias: 'Johan: Button Short Press: Toggle Lights'
+  description: ''
+  triggers:
+  - device_id: b11673215c3780d874a13859739d6471
+    domain: zha
+    type: remote_button_short_press
+    subtype: remote_button_short_press
+    trigger: device
+  conditions:
+  - condition: state
+    entity_id: binary_sensor.daytime
+    state:
+    - 'off'
+  actions:
+  - action: light.toggle
+    metadata: {}
+    target:
+      area_id: johan_vaerelse
+    data: {}
+  mode: single
+- id: '1766166479760'
+  alias: 'Living Room: Lights: Activate'
+  description: ''
+  triggers:
+  - device_id: 277214dd43787ec797456dfff29eba57
+    domain: zha
+    type: remote_button_double_press
+    subtype: remote_button_double_press
+    trigger: device
+  - type: motion
+    device_id: 1d3f2ec87fdb803d9d96b183c738d599
+    entity_id: 783af3dcae901f43ba29ee7adb292dfc
+    domain: binary_sensor
+    trigger: device
+  - trigger: state
+    entity_id:
+    - input_boolean.tv_mode
+    to:
+  - trigger: state
+    entity_id:
+    - input_boolean.sleep_mode
+    to:
+  - trigger: state
+    entity_id:
+    - input_boolean.living_room_max_light
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: input_boolean.sleep_mode
+        state:
+        - 'on'
+      sequence:
+      - action: light.turn_off
+        metadata: {}
+        target:
+          area_id: living_room
+        data: {}
+      alias: Sleep Mode
+    - conditions:
+      - condition: state
+        entity_id: input_boolean.living_room_max_light
+        state:
+        - 'on'
+      sequence:
+      - action: light.turn_on
+        metadata: {}
+        target:
+          area_id: living_room
+        data:
+          brightness_pct: '{{ states(''input_number.light_intensity'') | int(80) }}'
+        alias: Light 'Turn on MAX' on Living Room
+    - conditions:
+      - condition: state
+        entity_id: input_boolean.tv_mode
+        state:
+        - 'on'
+      sequence:
+      - action: scene.turn_on
+        metadata: {}
+        target:
+          entity_id: scene.scene_living_room_lights_tv_mode
+        data: {}
+      alias: TV Mode
+    - conditions:
+      - condition: state
+        entity_id: binary_sensor.daytime
+        state:
+        - 'off'
+      sequence:
+      - action: scene.turn_on
+        metadata: {}
+        target:
+          entity_id: scene.living_room_lights
+        data: {}
+      alias: Dark Outside
+    - conditions:
+      - condition: state
+        entity_id: binary_sensor.daytime
+        state:
+        - 'on'
+      sequence:
+      - action: scene.turn_on
+        metadata: {}
+        target:
+          entity_id: scene.scene_living_room_lights_day
+        data: {}
+      alias: Daytime
+  mode: single
+- id: '1766167093727'
+  alias: 'Johan: Lights: Activate'
+  description: ''
+  triggers:
+  - device_id: b11673215c3780d874a13859739d6471
+    domain: zha
+    type: remote_button_double_press
+    subtype: remote_button_double_press
+    trigger: device
+  - trigger: time
+    at: 06:45:00
+    weekday:
+    - mon
+    - tue
+    - wed
+    - thu
+    - fri
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: state
+        entity_id: binary_sensor.daytime
+        state:
+        - 'on'
+      sequence:
+      - action: scene.turn_on
+        metadata: {}
+        target:
+          entity_id: scene.scene_johan_lights_default
+        data: {}
+      alias: Daytime
+    - conditions:
+      - condition: state
+        entity_id: binary_sensor.daytime
+        state:
+        - 'off'
+      sequence:
+      - action: scene.turn_on
+        metadata: {}
+        target:
+          entity_id: scene.scene_johan_lights_dark_outside
+        data: {}
+      alias: Dark Outside
+  mode: single
+- id: '1766167506829'
+  alias: 'Johan: Lights: Deactivate'
+  description: ''
+  triggers:
+  - type: no_motion
+    device_id: 219332a7b4216beb3638bbefccaf9a41
+    entity_id: c5444ea0f456f71afba6caa9ecfae3bc
+    domain: binary_sensor
+    trigger: device
+    for:
+      hours: 0
+      minutes: 15
+      seconds: 0
+  - trigger: time
+    at: 07:45:00
+    weekday:
+    - mon
+    - tue
+    - wed
+    - thu
+    - fri
+  - device_id: 2246e347d3af06847bcf6f8c9add473e
+    domain: device_tracker
+    entity_id: 14656986d0e26f09b66a76794c2b5368
+    type: leaves
+    trigger: device
+    zone: zone.home
+  conditions: []
+  actions:
+  - action: light.turn_off
+    metadata: {}
+    target:
+      area_id: johan_vaerelse
+    data: {}
+  mode: single
+- id: '1767175282249'
+  alias: 'Basement: Lights: Activate'
+  description: ''
+  triggers:
+  - type: motion
+    device_id: 4d8b03e2a6cde0deccca1bd92b972b23
+    entity_id: 7afc13fee6a66c55ddffe9eff48aaab1
+    domain: binary_sensor
+    trigger: device
+  - type: turned_on
+    device_id: 4383674907116f98dd65c3ff49d390f8
+    entity_id: ccdb87ebcdb19c39d7fe5e1899de6fde
+    domain: switch
+    trigger: device
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: time
+        after: '23:00:00'
+        before: 06:00:00
+      sequence:
+      - action: light.turn_on
+        metadata: {}
+        target:
+          area_id: basement_01
+        data:
+          brightness_pct: '{{ ((states(''input_number.light_intensity'') | int(80)) * 0.3) | round | int }}'
+        alias: Soft lights
+    - conditions: []
+      sequence:
+      - action: light.turn_on
+        metadata: {}
+        target:
+          area_id: basement_01
+        data:
+          brightness_pct: '{{ states(''input_number.light_intensity'') | int(80) }}'
+      - type: turn_on
+        device_id: 4383674907116f98dd65c3ff49d390f8
+        entity_id: ccdb87ebcdb19c39d7fe5e1899de6fde
+        domain: switch
+  mode: single
+- id: '1767178944468'
+  alias: 'Basement: Lights: Deactivate'
+  description: ''
+  triggers:
+  - type: no_motion
+    device_id: 4d8b03e2a6cde0deccca1bd92b972b23
+    entity_id: 7afc13fee6a66c55ddffe9eff48aaab1
+    domain: binary_sensor
+    trigger: device
+    for:
+      hours: 0
+      minutes: 15
+      seconds: 0
+  - type: turned_off
+    device_id: 4383674907116f98dd65c3ff49d390f8
+    entity_id: ccdb87ebcdb19c39d7fe5e1899de6fde
+    domain: switch
+    trigger: device
+  conditions: []
+  actions:
+  - choose:
+    - conditions:
+      - condition: time
+        after: '17:00:00'
+        before: '19:00:00'
+      sequence: []
+      alias: Keep lights on in the evening
+    default:
+    - action: light.turn_off
+      metadata: {}
+      target:
+        area_id: basement_01
+      data: {}
+    - type: turn_off
+      device_id: 4383674907116f98dd65c3ff49d390f8
+      entity_id: ccdb87ebcdb19c39d7fe5e1899de6fde
+      domain: switch
+  mode: single
+- id: '1776103580912'
+  alias: 'Heatpump: Steering Scheduler'
+  description: Runs economic logic every 15 mins or on setting changes
+  triggers:
+  - minutes: /15
+    trigger: time_pattern
+  - entity_id: input_number.heatpump_base_temperature
+    trigger: state
+  - entity_id: input_number.heatpump_boost_value
+    trigger: state
+  - entity_id: sensor.energi_data_service
+    trigger: state
+  conditions:
+  - condition: template
+    value_template: '{{ states(''sensor.energi_data_service'') | is_number }}'
+  actions:
+  - action: script.hp_economic_logic
+  mode: restart
