@@ -1,0 +1,430 @@
+# Home Assistant YAML-mode dashboard — "Rooms"
+# Import to: /config/dashboards/rooms.yaml
+# Loaded via the lovelace: block in configuration.yaml (see home_assistant.md).
+views:
+- title: Living Room
+  path: living-room
+  icon: mdi:sofa
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    title: Lights & scenes
+    cards:
+    - type: tile
+      entity: light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm
+      features:
+      - type: light-brightness
+      name: Living Room 04
+    - type: tile
+      entity: light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_2
+      features:
+      - type: light-brightness
+      name: Living Room 06
+    - type: tile
+      entity: light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_3
+      features:
+      - type: light-brightness
+    - type: tile
+      entity: light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_5
+      features:
+      - type: light-brightness
+    - type: tile
+      entity: light.ikea_of_sweden_tradfribulbe27wsglobeopal1055lm
+      features:
+      - type: light-brightness
+      name: Living Room 03
+    - type: tile
+      entity: light.ikea_of_sweden_tradfri_bulb_e14_ws_globe_470lm
+      features:
+      - type: light-brightness
+      name: Living Room E14
+    - type: tile
+      entity: light.ikea_of_sweden_tradfri_bulb_e14_cws_globe_806lm
+      features:
+      - type: light-brightness
+      name: Living Room 07
+    - type: tile
+      entity: light.night_light
+      features:
+      - type: light-brightness
+      name: Night Light
+    - type: tile
+      entity: scene.scene_living_room_lights_day
+      icon: mdi:palette
+      tap_action:
+        action: perform-action
+        perform_action: scene.turn_on
+        target:
+          entity_id: scene.scene_living_room_lights_day
+      name: Daytime
+    - type: tile
+      entity: scene.living_room_lights
+      icon: mdi:palette
+      tap_action:
+        action: perform-action
+        perform_action: scene.turn_on
+        target:
+          entity_id: scene.living_room_lights
+      name: Dark Outside
+  - type: grid
+    title: Media
+    cards:
+    - type: media-control
+      entity: media_player.living_room
+  - type: grid
+    title: Sensors & safety
+    cards:
+    - type: tile
+      entity: binary_sensor.motion_sensor_living_room
+      name: Motion
+    - type: tile
+      entity: sensor.night_light_illuminance
+      name: Illuminance
+    - type: tile
+      entity: sensor.smoke_detector_living_room_temperature
+      name: Temperature
+    - type: tile
+      entity: binary_sensor.smoke_detector_living_room_smoke
+      name: Smoke
+- title: Kitchen
+  path: kitchen
+  icon: mdi:countertop
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    title: Climate
+    cards:
+    - type: tile
+      entity: climate.kokken
+      features:
+      - type: target-temperature
+      name: Kitchen
+- title: Bedroom
+  path: bedroom
+  icon: mdi:bed
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    title: Climate
+    cards:
+    - type: tile
+      entity: climate.sovevaerelse
+      features:
+      - type: target-temperature
+      name: Bedroom
+  - type: grid
+    title: Safety
+    cards:
+    - type: tile
+      entity: sensor.smoke_detector_bedroom_temperature
+      name: Temperature
+    - type: tile
+      entity: binary_sensor.smoke_detector_bedroom_smoke
+      name: Smoke
+- title: Office
+  path: office
+  icon: mdi:desk
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    title: Lights & scenes
+    cards:
+    - type: tile
+      entity: light.office_bulb_01
+      features:
+      - type: light-brightness
+      name: Office 01
+    - type: tile
+      entity: scene.office_lights_daytime
+      icon: mdi:palette
+      tap_action:
+        action: perform-action
+        perform_action: scene.turn_on
+        target:
+          entity_id: scene.office_lights_daytime
+      name: Daytime
+    - type: tile
+      entity: scene.office_lights_dark_outside
+      icon: mdi:palette
+      tap_action:
+        action: perform-action
+        perform_action: scene.turn_on
+        target:
+          entity_id: scene.office_lights_dark_outside
+      name: Dark Outside
+  - type: grid
+    title: Sensors & safety
+    cards:
+    - type: tile
+      entity: binary_sensor.motion_sensor_office
+      name: Motion
+    - type: tile
+      entity: sensor.smoke_detector_office_temperature
+      name: Temperature
+    - type: tile
+      entity: binary_sensor.smoke_detector_office_smoke
+      name: Smoke
+- title: Johan
+  path: johan
+  icon: mdi:teddy-bear
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    title: Lights & scenes
+    cards:
+    - type: tile
+      entity: light.ikea_of_sweden_tradfri_bulb_e27_ww_806lm
+      features:
+      - type: light-brightness
+      name: Johan 01
+    - type: tile
+      entity: light.ikea_of_sweden_tradfri_bulb_e27_ww_globe_806lm
+      features:
+      - type: light-brightness
+      name: Johan 02
+    - type: tile
+      entity: light.ikea_of_sweden_tradfri_driver_30w
+      features:
+      - type: light-brightness
+      name: Wardrobe
+    - type: tile
+      entity: scene.scene_johan_lights_default
+      icon: mdi:palette
+      tap_action:
+        action: perform-action
+        perform_action: scene.turn_on
+        target:
+          entity_id: scene.scene_johan_lights_default
+      name: Daytime
+    - type: tile
+      entity: scene.scene_johan_lights_dark_outside
+      icon: mdi:palette
+      tap_action:
+        action: perform-action
+        perform_action: scene.turn_on
+        target:
+          entity_id: scene.scene_johan_lights_dark_outside
+      name: Dark Outside
+  - type: grid
+    title: Media
+    cards:
+    - type: media-control
+      entity: media_player.johan_chromecast
+  - type: grid
+    title: Sensors & safety
+    cards:
+    - type: tile
+      entity: binary_sensor.motion_sensor_johan
+      name: Motion
+    - type: tile
+      entity: sensor.smoke_detector_johan_temperature
+      name: Temperature
+    - type: tile
+      entity: binary_sensor.smoke_detector_johan_smoke
+      name: Smoke
+- title: Esther
+  path: esther
+  icon: mdi:human-female-girl
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    title: Climate
+    cards:
+    - type: tile
+      entity: climate.esther
+      features:
+      - type: target-temperature
+      name: Esther
+  - type: grid
+    title: Safety
+    cards:
+    - type: tile
+      entity: sensor.smoke_detector_esther_temperature
+      name: Temperature
+    - type: tile
+      entity: binary_sensor.smoke_detector_esther_smoke
+      name: Smoke
+- title: Gustav
+  path: gustav
+  icon: mdi:human-male-boy
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    title: Climate
+    cards:
+    - type: tile
+      entity: climate.gustav
+      features:
+      - type: target-temperature
+      name: Gustav
+  - type: grid
+    title: Safety
+    cards:
+    - type: tile
+      entity: sensor.smoke_detector_gustav_temperature
+      name: Temperature
+    - type: tile
+      entity: binary_sensor.smoke_detector_gustav_smoke
+      name: Smoke
+- title: Entré
+  path: entre
+  icon: mdi:door
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    title: Climate
+    cards:
+    - type: tile
+      entity: climate.entre
+      features:
+      - type: target-temperature
+      name: Entré
+  - type: grid
+    title: Safety
+    cards:
+    - type: tile
+      entity: sensor.smoke_detector_entre_temperature
+      name: Temperature
+    - type: tile
+      entity: binary_sensor.smoke_detector_entre_smoke
+      name: Smoke
+- title: Viktualie
+  path: viktualie
+  icon: mdi:fridge-outline
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    title: Lights
+    cards:
+    - type: tile
+      entity: light.kajplats_gu10_ws_575lm
+      features:
+      - type: light-brightness
+      name: Spot 1
+    - type: tile
+      entity: light.kajplats_gu10_ws_575lm_2
+      features:
+      - type: light-brightness
+      name: Spot 2
+    - type: tile
+      entity: light.kajplats_gu10_ws_575lm_3
+      features:
+      - type: light-brightness
+      name: Spot 3
+    - type: tile
+      entity: light.kajplats_gu10_ws_575lm_4
+      features:
+      - type: light-brightness
+      name: Spot 4
+  - type: grid
+    title: Climate
+    cards:
+    - type: tile
+      entity: climate.viktualie
+      features:
+      - type: target-temperature
+      name: Viktualie
+  - type: grid
+    title: Safety
+    cards:
+    - type: tile
+      entity: sensor.smoke_detector_v_temperature
+      name: Temperature
+    - type: tile
+      entity: binary_sensor.smoke_detector_v_smoke
+      name: Smoke
+- title: Bathroom
+  path: bathroom
+  icon: mdi:shower
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    title: Climate
+    cards:
+    - type: tile
+      entity: climate.badevaerelse
+      features:
+      - type: target-temperature
+      name: Bathroom
+- title: Basement
+  path: basement
+  icon: mdi:home-floor-b
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    title: Lights
+    cards:
+    - type: tile
+      entity: light.basement_smart_bulb_01
+      features:
+      - type: light-brightness
+      name: Bulb 01
+    - type: tile
+      entity: light.basement_smart_bulb_02
+      features:
+      - type: light-brightness
+      name: Bulb 02
+    - type: tile
+      entity: light.basement_smart_bulb_03
+      features:
+      - type: light-brightness
+      name: Bulb 03
+    - type: tile
+      entity: switch.smart_plug_basement_kitchen_01
+      name: Kitchen Plug (Lights)
+  - type: grid
+    title: Power & motion
+    cards:
+    - type: tile
+      entity: sensor.j00_smart_plug_power
+      name: Power
+    - type: tile
+      entity: sensor.j00_smart_plug_voltage
+      name: Voltage
+    - type: tile
+      entity: sensor.j00_smart_plug_current
+      name: Current
+    - type: tile
+      entity: binary_sensor.motion_sensor_basement_01
+      name: Motion
+- title: Server Closet
+  path: server-closet
+  icon: mdi:server
+  type: sections
+  max_columns: 3
+  sections:
+  - type: grid
+    title: Power
+    cards:
+    - type: tile
+      entity: switch.smart_plug_0
+      name: Smart Plug
+    - type: tile
+      entity: sensor.smart_plug_0_power
+      name: Power
+    - type: tile
+      entity: sensor.smart_plug_0_voltage
+      name: Voltage
+    - type: tile
+      entity: sensor.smart_plug_0_current
+      name: Current
+  - type: grid
+    title: Environment
+    cards:
+    - type: tile
+      entity: sensor.timmerflotte_temp_hmd_sensor_temperature
+      name: Temperature
+    - type: tile
+      entity: sensor.timmerflotte_temp_hmd_sensor_humidity
+      name: Humidity

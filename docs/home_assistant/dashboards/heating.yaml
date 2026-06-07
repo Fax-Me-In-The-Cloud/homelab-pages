@@ -1,0 +1,262 @@
+# Home Assistant YAML-mode dashboard — "Heating"
+# Import to: /config/dashboards/heating.yaml
+# Loaded via the lovelace: block in configuration.yaml; requires the
+# apexcharts-card resource (declared there).
+views:
+- title: Home
+  sections:
+  - type: grid
+    entity: climate.warmlink_heat_pump
+    name: Main Heat Pump
+    features:
+    - type: climate-hvac-modes
+      hvac_modes:
+      - 'off'
+      - heat
+      - cool
+    cards:
+    - type: entities
+      entities:
+      - entity: sensor.weather_comp_offset_compensate_offset
+        name: Temperature Offset
+        secondary_info: last-changed
+        icon: mdi:temperature-celsius
+      - entity: sensor.heat_pump_delta_t
+        secondary_info: last-updated
+      - entity: sensor.heat_pump_mode_description
+        name: Mode
+      - entity: input_number.heatpump_base_temperature
+        secondary_info: last-changed
+      - entity: input_number.heatpump_boost_value
+        secondary_info: last-changed
+      - entity: input_select.heatpump_strategy
+        secondary_info: last-changed
+    - type: markdown
+      content: "{% set s = 'sensor.energi_data_service' %}\n{% if states(s) not in ['unavailable', 'unknown',\
+        \ 'none'] %}\n  {% set t = state_attr(s, 'tariffs') %}\n  {% set todm = state_attr(s, 'today_max')\
+        \ %}\n  {% set tomm = state_attr(s, 'tomorrow_max') %}\n\n  ## <ha-icon icon=\"mdi:cash-multiple\"\
+        ></ha-icon> **Total: {{ states(s) | float(-1) | round(3) }} DKK/kWh**\n\n  | Component | Price\
+        \ (DKK) |\n  | :--- | :--- |\n  | **Current Price** | {{ state_attr(s, 'current_price') | float(-1)\
+        \ | round(3) }} |\n  | **Grid Tariff** | {{ (t.additional_tariffs.transmissions_nettarif | round(3))\
+        \ if t.additional_tariffs.transmissions_nettarif is defined else 'N/A' }} |\n  | **System Tariff**\
+        \ | {{ (t.additional_tariffs.systemtarif | round(3)) if t.additional_tariffs.systemtarif is defined\
+        \ else 'N/A' }} |\n  | **Electricity Tax** | {{ (t.additional_tariffs.elafgift | round(3)) if\
+        \ t.additional_tariffs.elafgift is defined else 'N/A' }} |\n  | **Today mean** | {{ state_attr(s,\
+        \ 'today_mean') | float(-1) | round(3) }} |\n  | **Tomorrow mean** | {{ (state_attr(s, 'tomorrow_mean')\
+        \ | round(3)) if state_attr(s, 'tomorrow_mean') is number else 'N/A' }} |\n  | **Today max** |\
+        \ {{ (todm.price | round(3)) if todm and todm.price is number else 'N/A' }} |\n  | **Tomorrow\
+        \ max** | {{ (tomm.price | round(3)) if tomm and tomm.price is number else 'N/A' }} |\n\n  ---\n\
+        \  **Grid Operator:** Radius Elnet\n{% else %}\n  **Price data: N/A**\n{% endif %}"
+      title: Electricity Price Breakdown
+    - type: custom:apexcharts-card
+      header:
+        show: true
+        title: Electricity Price Forecast (Holte)
+        show_states: true
+        colorize_states: true
+      graph_span: 48h
+      span:
+        start: day
+      now:
+        show: true
+        label: Now
+      series:
+      - entity: sensor.energi_data_service
+        name: Total Price
+        type: area
+        curve: stepline
+        color: '#03A9F4'
+        data_generator: "const today = (entity.attributes.raw_today || []).map((entry) => {\n  return\
+          \ [new Date(entry.hour).getTime(), entry.price];\n});\nconst tomorrow = (entity.attributes.raw_tomorrow\
+          \ || []).map((entry) => {\n  return [new Date(entry.hour).getTime(), entry.price];\n});\nreturn\
+          \ [...today, ...tomorrow];\n"
+        show:
+          legend_value: true
+          in_header: false
+    - type: entities
+      entities:
+      - entity: sensor.water_flow_t39
+        name: Water Flow
+        secondary_info: last-updated
+      - entity: sensor.dhw_target_temp_r01
+        secondary_info: last-updated
+        name: Hot Water Target Temperature
+      - entity: sensor.dhw_temp_t08
+        name: Hot Water Temperature
+        secondary_info: last-updated
+      - entity: sensor.ambient_temp_t04
+        name: Outside Temperature
+        secondary_info: last-updated
+      - entity: sensor.inlet_water_temp_t01
+        secondary_info: last-updated
+        name: Heating Temperature Return Flow
+      - entity: sensor.outlet_water_temp_t02
+        secondary_info: last-updated
+        name: Heating Temperature Output Flow
+      - entity: sensor.ac_input_current_t35
+        secondary_info: last-updated
+        name: Ampere
+      - entity: sensor.fan_motor_1_speed_t27
+        name: Fan Speed
+        secondary_info: last-updated
+      - entity: sensor.heat_pump_cop
+        secondary_info: last-updated
+        icon: mdi:heating-coil
+    - type: history-graph
+      entities:
+      - entity: sensor.heat_pump_cop
+      title: Heatpump COP
+    column_span: 4
+  - type: grid
+    cards:
+    - type: thermostat
+      entity: climate.esther
+    - type: thermostat
+      entity: climate.sovevaerelse
+    - type: thermostat
+      entity: climate.gustav
+    - type: thermostat
+      entity: climate.entre
+    - type: thermostat
+      entity: climate.viktualie
+    - type: thermostat
+      entity: climate.badevaerelse
+    - type: thermostat
+      entity: climate.kokken
+    - type: history-graph
+      entities:
+      - entity: sensor.gustav_room_current_temperature
+        name: Gustav
+      - entity: sensor.bathroom_current_temperature
+        name: Bathroom
+      - entity: sensor.bedroom_current_temperature
+        name: Bedroom
+      - entity: sensor.entre_current_temperature
+        name: Hallway
+      - entity: sensor.esther_room_current_temperature
+        name: Esther
+      - entity: sensor.kitchen_current_temperature
+        name: Kitchen
+      - entity: sensor.pantry_current_temperature
+        name: Pantry
+      title: Current Temperature
+      hours_to_show: 24
+    - type: history-graph
+      entities:
+      - entity: sensor.gustav_room_humidity
+        name: Gustav
+      - entity: sensor.bathroom_humidity
+        name: Bathroom
+      - entity: sensor.bedroom_humidity
+        name: Bedroom
+      - entity: sensor.entre_humidity
+        name: Hallway
+      - entity: sensor.esther_room_humidity
+        name: Esther
+      - entity: sensor.kitchen_humidity
+        name: Kitchen
+      - entity: sensor.pantry_humidity
+        name: Pantry
+      title: Current Humidity
+      hours_to_show: 24
+    column_span: 4
+  - type: grid
+    cards:
+    - type: history-graph
+      entities:
+      - entity: sensor.water_flow_t39
+      title: Water Flow
+      hours_to_show: 48
+      logarithmic_scale: false
+      max_y_axis: 1.5
+      min_y_axis: 1.3
+    - type: history-graph
+      entities:
+      - entity: sensor.dhw_target_temp_r01
+      - entity: sensor.dhw_temp_t08
+      title: Hot Water Temperature
+      hours_to_show: 48
+      max_y_axis: 65
+      min_y_axis: 35
+    - type: history-graph
+      entities:
+      - entity: sensor.weather_comp_offset_compensate_offset
+        name: AT Curve Offset
+      - entity: sensor.ambient_temp_t04
+        name: Outside
+      - entity: sensor.inlet_water_temp_t01
+        name: Inlet Water
+      - entity: sensor.outlet_water_temp_t02
+        name: Outlet
+      - entity: sensor.heat_pump_delta_t
+        name: Inlet/Outlet Difference
+      title: Heating
+      hours_to_show: 48
+      max_y_axis: 65
+      grid_options:
+        columns: full
+    - type: history-graph
+      entities:
+      - entity: sensor.ac_input_current_t35
+      title: Input Current
+      hours_to_show: 48
+    - type: history-graph
+      entities:
+      - entity: sensor.fan_motor_1_speed_t27
+      hours_to_show: 48
+      title: Fan Speed
+    - type: history-graph
+      entities:
+      - entity: sensor.operating_mode_mode
+        name: Mode
+      hours_to_show: 48
+      title: Heatpump Operating Mode
+    column_span: 4
+  - type: grid
+    cards:
+    - type: markdown
+      content: "## <ha-icon icon=\"mdi:water-sync\"></ha-icon> **Hydronic Distribution (t01, t02)**\n\
+        This section monitors the thermal energy transfer into the residence's radiator and underfloor\
+        \ heating networks.\n\n* **Outlet (t02) | Flow:** The primary supply temperature. Under **Weather\
+        \ Compensation**, this value modulates dynamically to counteract outdoor ambient temperature fluctuations.\
+        \ * **Inlet (t01) | Return:** The temperature of the water returning from the distribution circuit.\
+        \ * **Performance Benchmark:** The differential (&Delta; T) is optimized between **3°C and 7°C**.\n\
+        \    * **High Differential (>8°C):** Suggests insufficient flow velocity; investigate potential\
+        \ circuit blockages or closed valves.\n    * **Low Differential (<2°C):** Suggests excessive pump\
+        \ speed, leading to reduced heat exchange efficiency.\n\n---\n## <ha-icon icon=\"mdi:engine-outline\"\
+        ></ha-icon> **EVI Thermodynamic Cycle (t10, t11)**\nThe **Enhanced Vapor Injection (EVI)** cycle\
+        \ serves as a high-efficiency stage for the compressor, specifically engineered for northern climates.\n\
+        \n* **Operational Core:** This technology allows for the production of high-grade heat (40°C+)\
+        \ during sub-zero outdoor conditions without exceeding the compressor’s thermal safety limits.\
+        \ * **Steady State Observation:** When EVI sensors maintain a ~20°C baseline against a 40°C flow,\
+        \ the system is utilizing \"sub-cooling\" to maximize COP (Coefficient of Performance). * **Defrost\
+        \ Protocol:** A rapid convergence of these values toward 0°C indicates an automated defrost cycle\
+        \ is active to remove ice accumulation from the outdoor evaporator.\n"
+      grid_options:
+        columns: full
+    - type: history-graph
+      entities:
+      - entity: sensor.inlet_water_temp_t01
+        name: House Return (In)
+      - entity: sensor.outlet_water_temp_t02
+        name: House Flow (Out)
+      - entity: sensor.heat_pump_delta_t
+      min_y_axis: 0
+      max_y_axis: 60
+      title: Water Circuit (Comfort)
+      hours_to_show: 48
+    - type: history-graph
+      entities:
+      - entity: sensor.inlet_temp_evi_t10
+      - entity: sensor.outlet_temp_evi_t11
+      min_y_axis: 0
+      max_y_axis: 60
+      title: EVI Circuit (Refrigerant)
+      hours_to_show: 48
+    - type: history-graph
+      entities:
+      - entity: sensor.dhw_temp_t08
+      - entity: sensor.outlet_water_temp_t02
+      hours_to_show: 72
+      title: Hot Water
+    column_span: 4
