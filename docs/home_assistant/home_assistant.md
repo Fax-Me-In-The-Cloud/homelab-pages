@@ -343,18 +343,129 @@ Verify the credentials are loaded as environment variables in the Home Assistant
 kubectl exec -it $(kubectl get pods -n home-assistant -l app=home-assistant -o jsonpath='{.items[0].metadata.name}') -n home-assistant -- env | grep HEATPUMP_
 ```
 
-### Utility scripts
+## Lighting
+
+A central, file-based lighting system: one master intensity value, sun-aware
+adaptive lighting in rooms with windows, and overrides for manual control and
+windowless rooms. All config-as-code — no UI editing.
+
+| File | Import to | Contents |
+|---|---|---|
+| `packages/lighting.yaml` | `/config/packages/lighting.yaml` | `input_number.light_intensity`, override helpers, the Adaptive Lighting switches, and the lighting automations. |
+| `automations.yaml` | `/config/automations.yaml` | All automations (HA already does `automation: !include automations.yaml`); the lighting ones reference `input_number.light_intensity`. |
+| `scenes.yaml` | `/config/scenes.yaml` | All scenes (HA already does `scene: !include scenes.yaml`); static snapshots — see the note below. |
+
+### Central intensity and window ratio
+
+Brightness is **daylight-compensated**: the more daylight a room actually
+receives, the dimmer its bulbs run, so perceived light stays roughly constant
+through the day.
+
+- **`input_number.light_intensity`** (0–100 %) — the master target indoor level,
+  referenced everywhere.
+- **`input_number.window_ratio_<room>`** (0–100 %) — how much of a room's light
+  comes from its windows. **Windowless rooms have ratio 0.** Defaults: Living
+  Room 80, Office 60, Johan 70, Viktualie 0, Basement 0.
+
+Per room:
+
+```text
+brightness = light_intensity × (1 − window_ratio × daylight)
+daylight   = clamp(sun_elevation / 40°, 0..1) × sky_clarity(weather)
+```
+
+So a windowed room dims as real daylight grows and returns to full
+`light_intensity` after dark; a windowless room (ratio 0) always sits at
+`light_intensity`. The **daylight envelope** automation computes this and feeds
+it to each Adaptive Lighting switch as a *pinned* brightness; Adaptive Lighting
+applies it and independently adapts **colour temperature** (warm evenings, cool
+midday). AL's own brightness curve is deliberately not used — it runs opposite
+to daylight compensation.
+
+Basement is windowless and keeps its motion-driven behaviour (with a late-night
+soft level) at `light_intensity`, in `automations.yaml`.
+
+### Overrides
+
+- **Manual (per windowed room):** toggle the room's override boolean —
+  `input_boolean.living_room_max_light` (Living Room, existing), or
+  `light_override_office` / `light_override_johan`. While on, the room is pinned
+  to full `light_intensity` and Adaptive Lighting stops adapting it; clearing it
+  resumes the envelope. (AL also auto-pauses on any manual change via
+  `take_over_control`, resuming after `autoreset_control_seconds`.)
+- **Permanent (windowless):** set a room's `window_ratio` to 0 — its lights then
+  always track `light_intensity` with no daylight dimming (Viktualie, Basement).
+
+### Colour-temperature schedule (high-latitude tuning)
+
+Colour temperature still follows the sun via Adaptive Lighting. At ~56°N the sun
+rises ~04:00 and sets ~22:00 in midsummer, so the virtual sun events are clamped
+with time bounds to keep the warm/cool schedule sensible:
+
+| Setting | Value | Effect |
+|---|---|---|
+| `min_sunrise_time` | `06:00` | Summer: do **not** go cool at a 04:00 sunrise. |
+| `max_sunrise_time` | `08:00` | Winter: reach cool "daytime" by 08:00. |
+| `min_sunset_time` | `20:00` | Winter: do **not** warm down before 20:00. |
+| `max_sunset_time` | `21:30` | Summer: begin warming by 21:30 even though the sun is still up. |
+
+Johan's room (warm-white bulbs) warms down earlier (`20:30`).
+
+### Apply
+
+1. Install **Adaptive Lighting** via HACS, then restart Home Assistant.
+2. Enable packages in `configuration.yaml`:
+
+    ```yaml
+    homeassistant:
+      packages: !include_dir_named packages
+    ```
+
+3. Copy `packages/lighting.yaml` to `/config/packages/`, and make sure
+   `automations.yaml` / `scenes.yaml` are in `/config/` (HA includes them by
+   default). Restart Home Assistant. Four switches appear:
+   `switch.adaptive_lighting_living_room`, `_office`, `_johan`, and
+   `_viktualie`.
+
+### Notes & gotchas
+
+- **Scenes are static snapshots** and cannot read `light_intensity` — the
+  central value is applied through Adaptive Lighting and the automations, not the
+  scene-based "Activate" flows. In an adaptive room, activating a scene counts as
+  a manual change and pauses Adaptive Lighting until `autoreset_control_seconds`.
+- **Manual override:** `take_over_control` stops adapting a light once you change
+  it by hand; `autoreset_control_seconds: 3600` resumes after an hour. (The
+  option is `autoreset_control_seconds`, not the `manual_control_reset_time`
+  name seen in some older write-ups.)
+- **Warm-white bulbs** (Johan): colour temperature only varies within the cosy
+  2200–2700 K range; brightness follows the daylight envelope like every room.
+- **IKEA bulbs** can mishandle simultaneous colour-temp + brightness commands —
+  `separate_turn_on_commands` + `send_split_delay: 500` split them.
+- **Zigbee mesh:** short `transition: 1` keeps frequent updates light on the
+  mesh; raise `interval` if lights feel laggy.
+- **Unassigned bulbs:** `light.ikea_of_sweden_tradfri_bulb_e27_ws_globe_1055lm_4`
+  and `light.kajplats_e27_ws_globe_1521lm` have no area and are **not** included
+  yet — assign them an area and add them to a `lights:` list in
+  `packages/lighting.yaml`.
+- **Optional lux refinement:** a real illuminance sensor
+  (`sensor.night_light_illuminance`) could drive brightness via
+  [adaptive-lux-lighting](https://github.com/max-mathieu/adaptive-lux-lighting)
+  instead of the weather-condition heuristic, for more accurate cloud
+  compensation.
+
+## Utility scripts
 
 Helper scripts for factory-resetting IKEA bulbs by power-cycling the
 smart plug they are connected to. Each takes a `switch` entity as input and
 toggles it on a fixed schedule — the bulb resets after the required number of
 off/on cycles.
 
-```yaml
-reset_ikea_bulb.yaml       # 6 power cycles (standard TRADFRI bulb)
-reset_ikea_kajplats.yaml   # 12 power cycles (KAJPLATS bulb)
-```
+| File | Import to | Notes |
+|---|---|---|
+| `reset_ikea_bulb.yaml` | a key in `/config/scripts.yaml` | 6 power cycles (standard TRADFRI bulb). |
+| `reset_ikea_kajplats.yaml` | a key in `/config/scripts.yaml` | 12 power cycles (KAJPLATS bulb). |
 
-These live in Home Assistant as scripts (**Settings → Automations & Scenes →
-Scripts**). Paste the YAML into a new script in YAML-edit mode, or add the
-contents under the matching key in `/config/scripts.yaml`.
+Home Assistant already loads scripts from that file (`script: !include
+scripts.yaml`). Add each script under its key (`reset_ikea_bulb:` /
+`reset_ikea_kajplats:`) in `/config/scripts.yaml` — the file in this repo is the
+body for that key — then reload via **Developer Tools → YAML → Scripts**.
