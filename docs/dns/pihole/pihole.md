@@ -2,7 +2,12 @@
 
 [Pi-hole](https://pi-hole.net/) provides DNS with network-wide ad blocking for the homelab. This page documents the **in-cluster** Pi-hole, which runs in k3s with a dedicated IP (`192.168.1.21`) assigned by kube-vip.
 
-> **Not currently in use.** This `192.168.1.21` instance is set up but is not active in the network today, and it does not hold records for local network servers (so it cannot resolve the `*.local.spaelling.xyz` internal domain). The sole DNS server in use is the primary resolver at `192.168.1.60`. The plan is to grow this into a redundant set of in-cluster Pi-hole resolvers — with local records — and eventually serve DNS from the cluster.
+> **Role: secondary resolver (DNS2).** This `192.168.1.21` instance is the
+> in-cluster secondary to the primary hardware Pi-hole at `192.168.1.60`. It is
+> kept in sync (blocklists **and** local `*.local.spaelling.xyz` records) by a
+> per-pod nebula-sync sidecar — see **[DNS redundancy](dns-redundancy.md)** for
+> the architecture and full apply steps. Before adding it to DHCP, make sure the
+> sync is working so it is a true equivalent of the primary.
 
 The deployment uses the [pihole-kubernetes](https://github.com/MoJo2600/pihole-kubernetes) classic manifests.
 
@@ -14,10 +19,12 @@ Apply the kube-vip ConfigMap so Pi-hole gets its dedicated IP, then create the n
 kubectl apply -f kubevip-configmap.yaml
 kubectl create namespace pihole
 kubectl create secret -n pihole generic pihole-webpassword --from-literal="password=$(openssl rand -base64 64)"
+# nebula-sync credentials (primary app password + localhost replica password):
+kubectl create secret -n pihole generic nebula-sync-credentials --from-literal="primary=http://192.168.1.60|<PRIMARY_APP_PASSWORD>" --from-literal="replicas=http://localhost|<PIHOLE_WEBPASSWORD>"
 kubectl apply -f pihole.yaml
 ```
 
-`kubevip-configmap.yaml` is in the `k3s/kubevip` directory. The generated password is stored as a Kubernetes secret — retrieve it later with `kubectl get secret -n pihole pihole-webpassword -o jsonpath='{.data.password}' | base64 --decode`.
+`kubevip-configmap.yaml` is in the `k3s/kubevip` directory. The generated password is stored as a Kubernetes secret — retrieve it later with `kubectl get secret -n pihole pihole-webpassword -o jsonpath='{.data.password}' | base64 --decode`. The `nebula-sync-credentials` secret and the sync design are covered in **[DNS redundancy](dns-redundancy.md)**.
 
 ## Verify DNS is working
 
