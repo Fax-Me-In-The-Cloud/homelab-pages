@@ -5,66 +5,50 @@ metadata:
     kubernetes.io/metadata.name: pihole
   name: pihole
 ---
+# Upstream resolver(s) for the in-cluster Pi-holes.
 apiVersion: v1
-data:
-  02-custom.conf: |
-    # 02-custom.conf - Custom DNSMasq configuration for Pi-hole
-    server=1.1.1.1
 kind: ConfigMap
 metadata:
   name: custom-dnsmasq
   namespace: pihole
+data:
+  02-custom.conf: |
+    # 02-custom.conf - Custom dnsmasq configuration for Pi-hole
+    server=1.1.1.1
 ---
-# ---
-# apiVersion: cert-manager.io/v1
-# kind: Certificate
-# metadata:
-#   name: pihole-web-ui-tls
-#   namespace: pihole
-# spec:
-#   secretName: pihole-web-ui-tls
-#   issuerRef:
-#     name: letsencrypt
-#     kind: ClusterIssuer
-#   dnsNames:
-#     - "*.pihole.local.spaelling.xyz"
-# ---
-# apiVersion: networking.k8s.io/v1
-# kind: Ingress
-# metadata:
-#   name: pihole-web-ui
-#   namespace: pihole
-#   annotations:
-#     traefik.ingress.kubernetes.io/router.middlewares: traefik-authentik-proxy-forwarder@kubernetescrd
-# spec:
-#   ingressClassName: traefik
-#   rules:
-#     - host: 01.pihole.local.spaelling.xyz
-#       http:
-#         paths:
-#           - backend:
-#               service:
-#                 name: pihole-0-svc
-#                 port:
-#                   number: 80
-#             path: /
-#             pathType: Prefix
-#     - host: 02.pihole.local.spaelling.xyz
-#       http:
-#         paths:
-#           - backend:
-#               service:
-#                 name: pihole-1-svc
-#                 port:
-#                   number: 80
-#             path: /
-#             pathType: Prefix
-#   tls:
-#     - hosts:
-#         - 01.pihole.local.spaelling.xyz
-#         - 02.pihole.local.spaelling.xyz
-#       secretName: pihole-web-ui-tls
-# ---
+# Local DNS records for the internal domain, shipped as code so every replica
+# can resolve *.local.spaelling.xyz immediately on start — even before the first
+# nebula-sync run. nebula-sync also replicates these from the primary; this is
+# belt-and-suspenders for the first-sync window.
+#
+# Replace the example with your real records (one address= line per host), or
+# leave it and rely on nebula-sync once the primary is reachable.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pihole-local-records
+  namespace: pihole
+data:
+  03-local-records.conf: |
+    # address=/<host>.local.spaelling.xyz/<ip>
+    address=/example.local.spaelling.xyz/192.168.1.10
+---
+# Headless service for the StatefulSet (stable pod network identity).
+apiVersion: v1
+kind: Service
+metadata:
+  name: pihole
+  namespace: pihole
+spec:
+  clusterIP: None
+  selector:
+    app: pihole
+  ports:
+    - name: pihole-http
+      port: 80
+---
+# The DNS service clients use as their SECONDARY resolver (DNS2). kube-vip
+# assigns the dedicated VIP; the Service load-balances across the in-sync pods.
 apiVersion: v1
 kind: Service
 metadata:
@@ -104,6 +88,7 @@ spec:
         app: pihole
     spec:
       containers:
+        # ---- Pi-hole (v6) ---------------------------------------------------
         - name: pihole
           image: pihole/pihole:latest
           imagePullPolicy: IfNotPresent
@@ -118,11 +103,17 @@ spec:
               name: pihole-http
               protocol: TCP
           env:
-            - name: DNSMASQ_LISTENING
-              value: "all" # This tells Pi-hole to accept queries from any network interface
+            # Pi-hole v6 uses FTLCONF_* env vars (the old WEBPASSWORD /
+            # DNSMASQ_LISTENING are v5 and are ignored by v6).
             - name: TZ
               value: "Europe/Copenhagen"
-            - name: WEBPASSWORD
+            - name: FTLCONF_dns_listeningMode
+              value: "all"                     # answer on every interface
+            - name: FTLCONF_misc_etc_dnsmasq_d
+              value: "true"                    # load /etc/dnsmasq.d/*.conf below
+            - name: FTLCONF_webserver_api_app_sudo
+              value: "true"                    # allow app-password sync (nebula-sync)
+            - name: FTLCONF_webserver_api_password
               valueFrom:
                 secretKeyRef:
                   key: password
@@ -140,11 +131,84 @@ spec:
             - name: custom-dnsmasq
               mountPath: /etc/dnsmasq.d/02-custom.conf
               subPath: 02-custom.conf
+            - name: local-records
+              mountPath: /etc/dnsmasq.d/03-local-records.conf
+              subPath: 03-local-records.conf
+        # ---- nebula-sync sidecar -------------------------------------------
+        # Each pod self-syncs from the primary Pi-hole (192.168.1.60) into its
+        # own localhost instance. Running it per-pod (rather than one central
+        # CronJob) needs no per-pod addressing and auto-scales with replicas.
+        # Selective sync: pull DNS records + blocklists/groups, but NOT DHCP/NTP
+        # (the primary owns DHCP — replicas must never serve it).
+        - name: nebula-sync
+          image: ghcr.io/lovelaze/nebula-sync:latest   # pin a version in production
+          env:
+            # PRIMARY_FILE / REPLICAS_FILE each hold one "http://host|password"
+            # string (see the nebula-sync-credentials secret below).
+            - name: PRIMARY_FILE
+              value: /etc/nebula-sync/primary
+            - name: REPLICAS_FILE
+              value: /etc/nebula-sync/replicas
+            - name: TZ
+              value: "Europe/Copenhagen"
+            - name: CRON
+              value: "*/15 * * * *"            # re-sync every 15 minutes
+            - name: FULL_SYNC
+              value: "false"
+            - name: SYNC_CONFIG_DNS
+              value: "true"                    # local DNS records (hosts/CNAMEs)
+            - name: SYNC_CONFIG_DHCP
+              value: "false"                   # never replicate DHCP
+            - name: SYNC_CONFIG_NTP
+              value: "false"
+            - name: SYNC_CONFIG_RESOLVER
+              value: "true"
+            - name: SYNC_CONFIG_MISC
+              value: "false"
+            - name: SYNC_CONFIG_DATABASE
+              value: "false"
+            - name: SYNC_CONFIG_DEBUG
+              value: "false"
+            - name: SYNC_GRAVITY_GROUP
+              value: "true"
+            - name: SYNC_GRAVITY_AD_LIST
+              value: "true"
+            - name: SYNC_GRAVITY_AD_LIST_BY_GROUP
+              value: "true"
+            - name: SYNC_GRAVITY_DOMAIN_LIST
+              value: "true"
+            - name: SYNC_GRAVITY_DOMAIN_LIST_BY_GROUP
+              value: "true"
+            - name: SYNC_GRAVITY_CLIENT
+              value: "true"
+            - name: SYNC_GRAVITY_CLIENT_BY_GROUP
+              value: "true"
+            - name: SYNC_GRAVITY_DHCP_LEASES
+              value: "false"
+          volumeMounts:
+            - name: nebula-sync-creds
+              mountPath: /etc/nebula-sync
+              readOnly: true
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
+            limits:
+              memory: "64Mi"
+              cpu: "100m"
       volumes:
-        - configMap:
-            defaultMode: 420
+        - name: custom-dnsmasq
+          configMap:
             name: custom-dnsmasq
-          name: custom-dnsmasq
+            defaultMode: 420
+        - name: local-records
+          configMap:
+            name: pihole-local-records
+            defaultMode: 420
+        - name: nebula-sync-creds
+          secret:
+            secretName: nebula-sync-credentials
+            defaultMode: 256
   volumeClaimTemplates:
     - metadata:
         name: config
@@ -153,5 +217,3 @@ spec:
         resources:
           requests:
             storage: 500Mi
----
-

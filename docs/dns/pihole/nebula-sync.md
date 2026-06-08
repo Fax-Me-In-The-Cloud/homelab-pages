@@ -8,17 +8,19 @@ Running multiple Pi-hole replicas (as a StatefulSet) without synchronisation mea
 
 ## Setup
 
-!!! note
-    Nebula Sync integration is not yet deployed. The following describes the intended configuration.
+Nebula Sync runs **per pod, as a sidecar** in the Pi-hole StatefulSet
+(`pihole.yaml`) rather than as a central `CronJob`: each replica syncs *itself*
+from the primary (`PRIMARY = 192.168.1.60`, `REPLICAS = http://localhost`). This
+needs no per-pod addressing and scales automatically with the StatefulSet — see
+[DNS redundancy](dns-redundancy.md) for the full rationale and apply steps.
 
-Deploy Nebula Sync as a Kubernetes `CronJob` in the `pihole` namespace. It should run frequently (e.g. every 5 minutes) to keep replicas in sync.
+Credentials come from the `nebula-sync-credentials` secret (the primary's
+`http://host|app-password` and the localhost replica's `http://localhost|password`);
+the replica password is the same `pihole-webpassword` used by Pi-hole itself.
 
-The CronJob needs:
-
-- The Pi-hole API URL and password for the primary instance
-- The Pi-hole API URL and password for each replica
-
-Secrets for the Pi-hole admin password already exist as `pihole-webpassword` in the `pihole` namespace.
+Sync is **selective** (`FULL_SYNC=false`): DNS records, resolver and gravity
+(blocklists/groups/clients) are replicated, but **DHCP and NTP are not** — the
+primary owns DHCP and the cluster must never serve it.
 
 ## References
 
